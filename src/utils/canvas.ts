@@ -26,7 +26,11 @@ export function drawLine(
   color: string,
   width: number
 ): void {
-  ctx.save()
+  const prevStrokeStyle = ctx.strokeStyle
+  const prevLineWidth = ctx.lineWidth
+  const prevLineCap = ctx.lineCap
+  const prevLineJoin = ctx.lineJoin
+
   ctx.strokeStyle = color
   ctx.lineWidth = width
   ctx.lineCap = 'round'
@@ -35,7 +39,11 @@ export function drawLine(
   ctx.moveTo(from.x, from.y)
   ctx.lineTo(to.x, to.y)
   ctx.stroke()
-  ctx.restore()
+
+  ctx.strokeStyle = prevStrokeStyle
+  ctx.lineWidth = prevLineWidth
+  ctx.lineCap = prevLineCap
+  ctx.lineJoin = prevLineJoin
 }
 
 export function drawRect(
@@ -45,7 +53,11 @@ export function drawRect(
   color: string,
   width: number
 ): void {
-  ctx.save()
+  const prevStrokeStyle = ctx.strokeStyle
+  const prevLineWidth = ctx.lineWidth
+  const prevLineCap = ctx.lineCap
+  const prevLineJoin = ctx.lineJoin
+
   ctx.strokeStyle = color
   ctx.lineWidth = width
   ctx.lineCap = 'round'
@@ -58,7 +70,11 @@ export function drawRect(
     Math.abs(to.y - from.y)
   )
   ctx.stroke()
-  ctx.restore()
+
+  ctx.strokeStyle = prevStrokeStyle
+  ctx.lineWidth = prevLineWidth
+  ctx.lineCap = prevLineCap
+  ctx.lineJoin = prevLineJoin
 }
 
 export function drawCircle(
@@ -73,7 +89,11 @@ export function drawCircle(
   const radiusX = Math.abs(to.x - from.x) / 2
   const radiusY = Math.abs(to.y - from.y) / 2
 
-  ctx.save()
+  const prevStrokeStyle = ctx.strokeStyle
+  const prevLineWidth = ctx.lineWidth
+  const prevLineCap = ctx.lineCap
+  const prevLineJoin = ctx.lineJoin
+
   ctx.strokeStyle = color
   ctx.lineWidth = width
   ctx.lineCap = 'round'
@@ -81,7 +101,11 @@ export function drawCircle(
   ctx.beginPath()
   ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2)
   ctx.stroke()
-  ctx.restore()
+
+  ctx.strokeStyle = prevStrokeStyle
+  ctx.lineWidth = prevLineWidth
+  ctx.lineCap = prevLineCap
+  ctx.lineJoin = prevLineJoin
 }
 
 export function startEraser(ctx: CanvasRenderingContext2D): void {

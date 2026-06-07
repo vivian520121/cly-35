@@ -51,21 +51,17 @@ defineExpose({
 </script>
 
 <template>
-  <div
-    class="flex-1 relative overflow-hidden"
+  <canvas
+    ref="canvasRef"
+    class="absolute inset-0 w-full h-full cursor-crosshair"
+    :class="{
+      'cursor-pen': tool === 'pen',
+      'cursor-erase': tool === 'eraser',
+      'cursor-crosshair': tool === 'line' || tool === 'rect' || tool === 'circle'
+    }"
     @mousedown.stop="handleCanvasClick"
     @touchstart.stop="handleCanvasClick"
-  >
-    <canvas
-      ref="canvasRef"
-      class="absolute inset-0 w-full h-full cursor-crosshair"
-      :class="{
-        'cursor-pen': tool === 'pen',
-        'cursor-erase': tool === 'eraser',
-        'cursor-crosshair': tool === 'line' || tool === 'rect' || tool === 'circle'
-      }"
-    ></canvas>
-  </div>
+  ></canvas>
 </template>
 
 <style scoped>

@@ -140,16 +140,18 @@ onMounted(() => {
       @export="handleExport"
     />
 
-    <div class="flex-1 flex flex-col overflow-hidden">
-      <NoteCanvas
-        ref="noteCanvasRef"
-        :note-id="note.id"
-        :canvas-data="note.canvasData"
-        :tool="drawing.currentTool"
-        :stroke-color="drawing.strokeColor"
-        :stroke-width="drawing.strokeWidth"
-        @canvas-change="handleCanvasChange"
-      />
+    <div class="flex-1 flex flex-col min-h-0">
+      <div class="flex-1 relative overflow-hidden">
+        <NoteCanvas
+          ref="noteCanvasRef"
+          :note-id="note.id"
+          :canvas-data="note.canvasData"
+          :tool="drawing.currentTool"
+          :stroke-color="drawing.strokeColor"
+          :stroke-width="drawing.strokeWidth"
+          @canvas-change="handleCanvasChange"
+        />
+      </div>
 
       <NoteTextEditor
         :content="text.content"
@@ -162,17 +164,19 @@ onMounted(() => {
         @close="showTextEditor = false"
       />
 
-      <NoteToolbar
-        :current-tool="drawing.currentTool"
-        :stroke-color="drawing.strokeColor"
-        :stroke-width="drawing.strokeWidth"
-        @update:current-tool="handleToolUpdate"
-        @update:stroke-color="handleColorUpdate"
-        @update:stroke-width="handleWidthUpdate"
-        @clear="handleClear"
-        @toggle-text="showTextEditor = !showTextEditor"
-        @toggle-style="showStylePanel = !showStylePanel"
-      />
+      <div class="shrink-0">
+        <NoteToolbar
+          :current-tool="drawing.currentTool"
+          :stroke-color="drawing.strokeColor"
+          :stroke-width="drawing.strokeWidth"
+          @update:current-tool="handleToolUpdate"
+          @update:stroke-color="handleColorUpdate"
+          @update:stroke-width="handleWidthUpdate"
+          @clear="handleClear"
+          @toggle-text="showTextEditor = !showTextEditor"
+          @toggle-style="showStylePanel = !showStylePanel"
+        />
+      </div>
     </div>
 
     <NoteStylePanel
