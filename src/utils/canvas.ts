@@ -6,16 +6,17 @@ export function getCanvasPoint(
   clientY: number
 ): Point {
   const rect = canvas.getBoundingClientRect()
-  const scaleX = canvas.width / rect.width
-  const scaleY = canvas.height / rect.height
   return {
-    x: (clientX - rect.left) * scaleX,
-    y: (clientY - rect.top) * scaleY
+    x: clientX - rect.left,
+    y: clientY - rect.top
   }
 }
 
 export function clearCanvas(ctx: CanvasRenderingContext2D): void {
+  ctx.save()
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+  ctx.restore()
 }
 
 export function drawLine(
@@ -106,7 +107,10 @@ export function loadImageToCanvas(
     img.onload = () => {
       const ctx = canvas.getContext('2d')
       if (ctx) {
-        ctx.drawImage(img, 0, 0)
+        ctx.save()
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        ctx.restore()
       }
       resolve()
     }
