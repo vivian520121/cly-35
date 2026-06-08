@@ -10,7 +10,8 @@ function handleNewNote() {
 
 function handleClearAll() {
   if (noteStore.notes.length === 0) return
-  if (confirm('确定要删除所有便签吗？此操作不可撤销。')) {
+  const confirmed = confirm('确定要删除所有便签吗？此操作不可撤销。')
+  if (confirmed === true) {
     noteStore.clearAllNotes()
   }
 }

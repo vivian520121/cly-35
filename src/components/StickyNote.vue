@@ -57,7 +57,8 @@ function handleWidthUpdate(width: number) {
 }
 
 function handleClear() {
-  if (confirm('确定要清除画布内容吗？')) {
+  const confirmed = confirm('确定要清除画布内容吗？')
+  if (confirmed === true) {
     noteCanvasRef.value?.clear()
   }
 }

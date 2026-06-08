@@ -102,7 +102,7 @@ export function useCanvasDrawing(options: UseCanvasDrawingOptions) {
 
   function handleStart(e: MouseEvent | TouchEvent) {
     e.preventDefault()
-    if (!canvasRef.value || isLoading.value) return
+    if (!canvasRef.value || !ctx || isLoading.value || isDrawing.value) return
     isDrawing.value = true
     const point = getPoint(e)
     if (!point) return
@@ -155,12 +155,11 @@ export function useCanvasDrawing(options: UseCanvasDrawingOptions) {
   }
 
   function clear() {
-    if (ctx && canvasRef.value) {
-      clearCanvas(ctx)
-      const dataUrl = canvasToDataURL(canvasRef.value)
-      skipNextReload.value = true
-      onCanvasChange?.(dataUrl)
-    }
+    if (!ctx || !canvasRef.value || isLoading.value || isDrawing.value) return
+    clearCanvas(ctx)
+    const dataUrl = canvasToDataURL(canvasRef.value)
+    skipNextReload.value = true
+    onCanvasChange?.(dataUrl)
   }
 
   function reloadCanvasData() {
