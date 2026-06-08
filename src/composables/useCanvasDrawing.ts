@@ -32,25 +32,43 @@ export function useCanvasDrawing(options: UseCanvasDrawingOptions) {
   } = options
 
   const isDrawing = ref(false)
+  const isLoading = ref(false)
   const startPoint = ref<Point | null>(null)
   const lastPoint = ref<Point | null>(null)
   const savedImageData = ref<ImageData | null>(null)
+  const skipNextReload = ref(false)
 
   let ctx: CanvasRenderingContext2D | null = null
+  let lastCanvasSize = { width: 0, height: 0 }
 
-  function initCanvas() {
+  async function initCanvas(force = false) {
     if (!canvasRef.value) return
     ctx = canvasRef.value.getContext('2d')
     if (!ctx) return
 
     const dpr = window.devicePixelRatio || 1
     const rect = canvasRef.value.getBoundingClientRect()
-    canvasRef.value.width = rect.width * dpr
-    canvasRef.value.height = rect.height * dpr
-    ctx.scale(dpr, dpr)
+    const newWidth = rect.width * dpr
+    const newHeight = rect.height * dpr
+
+    const sizeChanged = force || 
+      lastCanvasSize.width !== newWidth || 
+      lastCanvasSize.height !== newHeight
+
+    if (sizeChanged) {
+      canvasRef.value.width = newWidth
+      canvasRef.value.height = newHeight
+      ctx.scale(dpr, dpr)
+      lastCanvasSize = { width: newWidth, height: newHeight }
+    }
 
     if (canvasData.value) {
-      loadImageToCanvas(canvasRef.value, canvasData.value)
+      isLoading.value = true
+      try {
+        await loadImageToCanvas(canvasRef.value, canvasData.value)
+      } finally {
+        isLoading.value = false
+      }
     }
   }
 
@@ -84,14 +102,14 @@ export function useCanvasDrawing(options: UseCanvasDrawingOptions) {
 
   function handleStart(e: MouseEvent | TouchEvent) {
     e.preventDefault()
-    if (!canvasRef.value) return
+    if (!canvasRef.value || isLoading.value) return
     isDrawing.value = true
     const point = getPoint(e)
     if (!point) return
     startPoint.value = point
     lastPoint.value = point
 
-    if (tool.value === 'rect' || tool.value === 'circle') {
+    if (tool.value === 'rect' || tool.value === 'circle' || tool.value === 'line') {
       saveCanvasState()
     }
   }
@@ -110,7 +128,6 @@ export function useCanvasDrawing(options: UseCanvasDrawingOptions) {
       drawEraserLine(ctx, lastPoint.value, point, strokeWidth.value * 2)
     } else if (currentTool === 'line') {
       restoreCanvasState()
-      saveCanvasState()
       drawLine(ctx, startPoint.value!, point, strokeColor.value, strokeWidth.value)
     } else if (currentTool === 'rect') {
       restoreCanvasState()
@@ -129,6 +146,7 @@ export function useCanvasDrawing(options: UseCanvasDrawingOptions) {
     isDrawing.value = false
 
     const dataUrl = canvasToDataURL(canvasRef.value)
+    skipNextReload.value = true
     onCanvasChange?.(dataUrl)
 
     startPoint.value = null
@@ -140,6 +158,7 @@ export function useCanvasDrawing(options: UseCanvasDrawingOptions) {
     if (ctx && canvasRef.value) {
       clearCanvas(ctx)
       const dataUrl = canvasToDataURL(canvasRef.value)
+      skipNextReload.value = true
       onCanvasChange?.(dataUrl)
     }
   }
@@ -151,10 +170,18 @@ export function useCanvasDrawing(options: UseCanvasDrawingOptions) {
   }
 
   watch(canvasData, (newData) => {
-    if (newData && canvasRef.value && !isDrawing.value) {
-      initCanvas()
+    if (skipNextReload.value) {
+      skipNextReload.value = false
+      return
+    }
+    if (newData && canvasRef.value && !isDrawing.value && !isLoading.value) {
+      initCanvas(true)
     }
   })
+
+  function handleResize() {
+    initCanvas(true)
+  }
 
   onMounted(() => {
     initCanvas()
@@ -167,7 +194,7 @@ export function useCanvasDrawing(options: UseCanvasDrawingOptions) {
       canvas.addEventListener('touchstart', handleStart, { passive: false })
       canvas.addEventListener('touchmove', handleMove, { passive: false })
       canvas.addEventListener('touchend', handleEnd, { passive: false })
-      window.addEventListener('resize', initCanvas)
+      window.addEventListener('resize', handleResize)
     }
   })
 
@@ -181,7 +208,7 @@ export function useCanvasDrawing(options: UseCanvasDrawingOptions) {
       canvas.removeEventListener('touchstart', handleStart)
       canvas.removeEventListener('touchmove', handleMove)
       canvas.removeEventListener('touchend', handleEnd)
-      window.removeEventListener('resize', initCanvas)
+      window.removeEventListener('resize', handleResize)
     }
   })
 
