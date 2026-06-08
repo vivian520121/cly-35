@@ -118,6 +118,24 @@ export function stopEraser(ctx: CanvasRenderingContext2D): void {
   ctx.globalCompositeOperation = 'source-over'
 }
 
+export function drawEraserLine(
+  ctx: CanvasRenderingContext2D,
+  from: Point,
+  to: Point,
+  width: number
+): void {
+  ctx.save()
+  ctx.globalCompositeOperation = 'destination-out'
+  ctx.lineWidth = width
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.beginPath()
+  ctx.moveTo(from.x, from.y)
+  ctx.lineTo(to.x, to.y)
+  ctx.stroke()
+  ctx.restore()
+}
+
 export function loadImageToCanvas(
   canvas: HTMLCanvasElement,
   dataUrl: string

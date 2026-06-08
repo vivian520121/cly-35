@@ -6,8 +6,7 @@ import {
   drawLine,
   drawRect,
   drawCircle,
-  startEraser,
-  stopEraser,
+  drawEraserLine,
   loadImageToCanvas,
   canvasToDataURL,
   clearCanvas
@@ -94,9 +93,6 @@ export function useCanvasDrawing(options: UseCanvasDrawingOptions) {
 
     if (tool.value === 'rect' || tool.value === 'circle') {
       saveCanvasState()
-    } else if (tool.value === 'eraser') {
-      startEraser(ctx!)
-      ctx!.lineWidth = strokeWidth.value * 2
     }
   }
 
@@ -111,7 +107,7 @@ export function useCanvasDrawing(options: UseCanvasDrawingOptions) {
     if (currentTool === 'pen') {
       drawLine(ctx, lastPoint.value, point, strokeColor.value, strokeWidth.value)
     } else if (currentTool === 'eraser') {
-      drawLine(ctx, lastPoint.value, point, '#000000', strokeWidth.value * 2)
+      drawEraserLine(ctx, lastPoint.value, point, strokeWidth.value * 2)
     } else if (currentTool === 'line') {
       restoreCanvasState()
       saveCanvasState()
@@ -131,10 +127,6 @@ export function useCanvasDrawing(options: UseCanvasDrawingOptions) {
     if (!isDrawing.value || !canvasRef.value) return
     e.preventDefault()
     isDrawing.value = false
-
-    if (tool.value === 'eraser') {
-      stopEraser(ctx!)
-    }
 
     const dataUrl = canvasToDataURL(canvasRef.value)
     onCanvasChange?.(dataUrl)

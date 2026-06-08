@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { Pencil, Eraser, Minus, Square, Circle, Type, Palette, RotateCcw } from 'lucide-vue-next'
 import type { ToolType } from '@/types'
 import { STROKE_COLORS } from '@/types'
@@ -21,7 +21,22 @@ const emit = defineEmits<{
 }>()
 
 const showColorPicker = ref(false)
+const colorPickerRef = ref<HTMLDivElement | null>(null)
 const strokeWidths = [1, 2, 3, 5, 8]
+
+function handleClickOutside(e: MouseEvent) {
+  if (colorPickerRef.value && !colorPickerRef.value.contains(e.target as Node)) {
+    showColorPicker.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 const tools = [
   { type: 'pen' as ToolType, icon: Pencil, label: '画笔' },
@@ -65,9 +80,9 @@ function selectWidth(width: number) {
 
       <div class="w-px h-5 bg-black/10 mx-1"></div>
 
-      <div class="relative">
+      <div class="relative" ref="colorPickerRef">
         <button
-          @click="showColorPicker = !showColorPicker"
+          @click.stop="showColorPicker = !showColorPicker"
           class="p-1.5 rounded hover:bg-black/8 transition-colors flex items-center gap-1"
           title="选择颜色"
         >
@@ -78,14 +93,15 @@ function selectWidth(width: number) {
         </button>
         <div
           v-if="showColorPicker"
-          class="absolute bottom-full left-0 mb-2 p-2 bg-white rounded-lg shadow-xl border border-gray-200 grid grid-cols-4 gap-1 z-10"
+          class="absolute bottom-full left-0 mb-2 p-2 bg-white rounded-lg shadow-xl border border-gray-200 grid grid-cols-4 gap-2 z-50 min-w-[120px]"
+          @click.stop
         >
           <button
             v-for="color in STROKE_COLORS"
             :key="color"
             @click="selectColor(color)"
-            class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110"
-            :class="strokeColor === color ? 'border-gray-800 scale-110' : 'border-white'"
+            class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 flex-shrink-0"
+            :class="strokeColor === color ? 'border-gray-800 scale-110' : 'border-gray-200'"
             :style="{ backgroundColor: color }"
           ></button>
         </div>
