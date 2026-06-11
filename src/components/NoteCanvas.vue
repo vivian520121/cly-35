@@ -40,7 +40,9 @@ const { clear, initCanvas } = useCanvasDrawing({
 })
 
 function handleCanvasClick() {
-  noteStore.setActiveNote(props.noteId)
+  if (noteStore.activeNoteId !== props.noteId) {
+    noteStore.setActiveNote(props.noteId)
+  }
 }
 
 defineExpose({
@@ -61,6 +63,7 @@ defineExpose({
     }"
     @mousedown.stop="handleCanvasClick"
     @touchstart.stop="handleCanvasClick"
+    @click.stop
   ></canvas>
 </template>
 

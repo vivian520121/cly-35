@@ -138,6 +138,7 @@ onMounted(() => {
     }"
     @mousedown.stop="handleRestore"
     @touchstart.stop="handleRestore"
+    @click.stop
   >
     <span class="text-lg font-bold text-gray-500 pointer-events-none select-none">📝</span>
   </div>
@@ -165,6 +166,7 @@ onMounted(() => {
     }"
     @mousedown="handleNoteClick"
     @touchstart="handleNoteClick"
+    @click.stop
   >
     <NoteHeader
       ref="noteHeaderRef"
