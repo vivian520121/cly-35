@@ -32,6 +32,7 @@ export interface Note {
   text: TextSettings
   drawing: DrawingSettings
   isActive: boolean
+  isMinimized: boolean
   createdAt: string
   updatedAt: string
 }

@@ -3,6 +3,9 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useNoteStore } from '@/stores/noteStore'
 import { clamp } from '@/utils/id'
 
+const SNAP_THRESHOLD = 20
+const PREVIEW_OPACITY = 0.5
+
 interface UseNoteDragOptions {
   noteId: string
   handleRef: Ref<HTMLElement | null>
@@ -14,10 +17,43 @@ export function useNoteDrag(options: UseNoteDragOptions) {
   const noteStore = useNoteStore()
 
   const isDragging = ref(false)
+  const isSnapped = ref(false)
+
   const startX = ref(0)
   const startY = ref(0)
   const startNoteX = ref(0)
   const startNoteY = ref(0)
+  let rafId: number | null = null
+  let pendingX = 0
+  let pendingY = 0
+
+  function snapToEdge(value: number, min: number, max: number): number {
+    if (Math.abs(value - min) <= SNAP_THRESHOLD) return min
+    if (Math.abs(value - max) <= SNAP_THRESHOLD) return max
+    return value
+  }
+
+  function calcSnappedPosition(rawX: number, rawY: number) {
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const nw = noteRef.value?.offsetWidth || 320
+    const nh = noteRef.value?.offsetHeight || 420
+
+    const clampedX = clamp(rawX, -nw + 100, vw - 100)
+    const clampedY = clamp(rawY, 0, vh - 100)
+
+    const snappedX = snapToEdge(clampedX, 0, vw - nw)
+    const snappedY = snapToEdge(clampedY, 0, vh - nh)
+
+    const snapped = snappedX !== clampedX || snappedY !== clampedY
+
+    return { x: snappedX, y: snappedY, snapped }
+  }
+
+  function flushPosition() {
+    noteStore.updateNotePosition(noteId, pendingX, pendingY)
+    rafId = null
+  }
 
   function handleStart(e: MouseEvent | TouchEvent) {
     e.preventDefault()
@@ -42,10 +78,12 @@ export function useNoteDrag(options: UseNoteDragOptions) {
       startNoteY.value = note.y
     }
 
-    document.addEventListener('mousemove', handleMove)
+    document.addEventListener('mousemove', handleMove, { passive: false })
     document.addEventListener('mouseup', handleEnd)
     document.addEventListener('touchmove', handleMove, { passive: false })
     document.addEventListener('touchend', handleEnd, { passive: false })
+
+    document.body.classList.add('drag-lock')
   }
 
   function handleMove(e: MouseEvent | TouchEvent) {
@@ -64,28 +102,37 @@ export function useNoteDrag(options: UseNoteDragOptions) {
     const dx = clientX - startX.value
     const dy = clientY - startY.value
 
-    const newX = startNoteX.value + dx
-    const newY = startNoteY.value + dy
+    const rawX = startNoteX.value + dx
+    const rawY = startNoteY.value + dy
 
-    const viewportWidth = window.innerWidth
-    const viewportHeight = window.innerHeight
-    const noteWidth = noteRef.value?.offsetWidth || 320
-    const noteHeight = noteRef.value?.offsetHeight || 420
+    const { x: snappedX, y: snappedY, snapped } = calcSnappedPosition(rawX, rawY)
 
-    const clampedX = clamp(newX, -noteWidth + 100, viewportWidth - 100)
-    const clampedY = clamp(newY, 0, viewportHeight - 100)
+    isSnapped.value = snapped
 
-    noteStore.updateNotePosition(noteId, clampedX, clampedY)
+    pendingX = snappedX
+    pendingY = snappedY
+
+    if (!rafId) {
+      rafId = requestAnimationFrame(flushPosition)
+    }
   }
 
-  function handleEnd(e: MouseEvent | TouchEvent) {
+  function handleEnd() {
     if (!isDragging.value) return
     isDragging.value = false
+    isSnapped.value = false
+
+    if (rafId) {
+      cancelAnimationFrame(rafId)
+      rafId = null
+    }
 
     document.removeEventListener('mousemove', handleMove)
     document.removeEventListener('mouseup', handleEnd)
     document.removeEventListener('touchmove', handleMove)
     document.removeEventListener('touchend', handleEnd)
+
+    document.body.classList.remove('drag-lock')
 
     noteStore.saveToStorage()
   }
@@ -108,9 +155,17 @@ export function useNoteDrag(options: UseNoteDragOptions) {
     document.removeEventListener('mouseup', handleEnd)
     document.removeEventListener('touchmove', handleMove)
     document.removeEventListener('touchend', handleEnd)
+
+    if (rafId) {
+      cancelAnimationFrame(rafId)
+      rafId = null
+    }
+
+    document.body.classList.remove('drag-lock')
   })
 
   return {
-    isDragging
+    isDragging,
+    isSnapped
   }
 }

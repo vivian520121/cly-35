@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Pin, ChevronUp, ChevronDown, Download, Trash2 } from 'lucide-vue-next'
+import { Pin, ChevronUp, ChevronDown, Download, Trash2, Minimize2 } from 'lucide-vue-next'
 import { useNoteStore } from '@/stores/noteStore'
 import { useNoteDrag } from '@/composables/useNoteDrag'
 import type { Ref } from 'vue'
@@ -18,7 +18,7 @@ const noteStore = useNoteStore()
 const handleRef = ref<HTMLElement | null>(null)
 const noteRef = ref<HTMLElement | null>(null)
 
-const { isDragging } = useNoteDrag({
+const { isDragging, isSnapped } = useNoteDrag({
   noteId: props.noteId,
   handleRef: handleRef as Ref<HTMLElement | null>,
   noteRef: noteRef as Ref<HTMLElement | null>
@@ -42,8 +42,14 @@ function handleExport() {
   emit('export')
 }
 
+function handleMinimize() {
+  noteStore.toggleMinimize(props.noteId)
+}
+
 defineExpose({
-  noteRef
+  noteRef,
+  isDragging,
+  isSnapped
 })
 </script>
 
@@ -63,6 +69,13 @@ defineExpose({
     </div>
 
     <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      <button
+        @click.stop="handleMinimize"
+        class="p-1.5 hover:bg-black/10 rounded transition-colors"
+        title="最小化"
+      >
+        <Minimize2 class="w-4 h-4 text-gray-600" />
+      </button>
       <button
         @click.stop="handleTop"
         class="p-1.5 hover:bg-black/10 rounded transition-colors"

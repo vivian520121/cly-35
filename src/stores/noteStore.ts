@@ -50,6 +50,7 @@ export const useNoteStore = defineStore('notes', () => {
         strokeWidth: 2
       },
       isActive: false,
+      isMinimized: false,
       createdAt: now,
       updatedAt: now
     }
@@ -147,6 +148,14 @@ export const useNoteStore = defineStore('notes', () => {
     }
   }
 
+  function toggleMinimize(noteId: string): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (note) {
+      note.isMinimized = !note.isMinimized
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
   function clearAllNotes(): void {
     notes.value = []
     activeNoteId.value = null
@@ -170,7 +179,10 @@ export const useNoteStore = defineStore('notes', () => {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
         const data = JSON.parse(stored)
-        notes.value = data.notes || []
+        notes.value = (data.notes || []).map((n: Note) => ({
+          ...n,
+          isMinimized: n.isMinimized ?? false
+        }))
         maxZIndex.value = data.maxZIndex || 10
         activeNoteId.value = null
         notes.value.forEach(n => n.isActive = false)
@@ -197,6 +209,7 @@ export const useNoteStore = defineStore('notes', () => {
     setTool,
     bringToFront,
     sendToBack,
+    toggleMinimize,
     clearAllNotes,
     saveToStorage,
     loadFromStorage

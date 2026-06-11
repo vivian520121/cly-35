@@ -40,6 +40,8 @@ const borderClass = computed(() => {
   return `border ${borderMap[style.borderStyle]}`
 })
 
+const isMinimized = computed(() => props.note.isMinimized)
+
 function handleCanvasChange(dataUrl: string) {
   noteStore.updateNoteCanvasData(props.note.id, dataUrl)
 }
@@ -95,6 +97,11 @@ function handleNoteClick() {
   }
 }
 
+function handleRestore() {
+  noteStore.toggleMinimize(props.note.id)
+  noteStore.setActiveNote(props.note.id)
+}
+
 watch(
   () => props.note.isActive,
   (active) => {
@@ -115,10 +122,34 @@ onMounted(() => {
 
 <template>
   <div
+    v-if="isMinimized"
+    class="sticky-note-mini absolute flex items-center justify-center cursor-pointer select-none"
+    :class="[
+      note.isActive ? 'shadow-note-active ring-2 ring-blue-400/30' : 'shadow-note',
+      { 'animate-note-appear': isAppearing }
+    ]"
+    :style="{
+      left: `${note.x}px`,
+      top: `${note.y}px`,
+      zIndex: note.zIndex,
+      backgroundColor: note.style.backgroundColor,
+      borderColor: note.style.borderColor,
+      borderWidth: note.style.borderStyle !== 'none' ? `${note.style.borderWidth}px` : '0px'
+    }"
+    @mousedown.stop="handleRestore"
+    @touchstart.stop="handleRestore"
+  >
+    <span class="text-lg font-bold text-gray-500 pointer-events-none select-none">📝</span>
+  </div>
+
+  <div
+    v-else
     class="sticky-note absolute flex flex-col rounded-lg shadow-note overflow-hidden animate-note-appear"
     :class="[
       note.isActive ? 'shadow-note-active ring-2 ring-blue-400/30' : '',
       borderClass,
+      noteHeaderRef?.isDragging ? 'is-dragging' : '',
+      noteHeaderRef?.isSnapped ? 'is-snapped' : '',
       { 'animate-note-disappear': isDisappearing }
     ]"
     :style="{
@@ -191,8 +222,21 @@ onMounted(() => {
 
 <style scoped>
 .sticky-note {
-  transition: box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+  transition: box-shadow 0.2s ease, transform 0.15s ease, opacity 0.15s ease;
   will-change: left, top, z-index;
+}
+
+.sticky-note.is-dragging {
+  opacity: 0.6 !important;
+  transform: scale(1.02);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 9999 !important;
+  transition: box-shadow 0.1s ease, transform 0.1s ease, opacity 0.1s ease;
+}
+
+.sticky-note.is-snapped {
+  outline: 3px solid rgba(59, 130, 246, 0.6);
+  outline-offset: 2px;
 }
 
 .sticky-note::before {
@@ -206,5 +250,23 @@ onMounted(() => {
   opacity: 0.03;
   pointer-events: none;
   z-index: 0;
+}
+
+.sticky-note-mini {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border-style: solid;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  will-change: left, top, z-index, transform;
+}
+
+.sticky-note-mini:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.sticky-note-mini:active {
+  transform: scale(0.95);
 }
 </style>

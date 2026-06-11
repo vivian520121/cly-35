@@ -25,6 +25,13 @@ body {
   background: #f5f7fa;
 }
 
+body.drag-lock {
+  overflow: hidden !important;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
 button {
   font-family: inherit;
   cursor: pointer;
