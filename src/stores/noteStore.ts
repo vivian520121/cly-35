@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Note, NoteStyle, DrawingSettings, TextSettings, ToolType } from '@/types'
+import type { Note, NoteStyle, NoteTag, DrawingSettings, TextSettings, ToolType } from '@/types'
 import { generateId, getRandomNoteColor } from '@/utils/id'
 
 const STORAGE_KEY = 'sticky-notes-canvas-data'
@@ -9,9 +9,14 @@ export const useNoteStore = defineStore('notes', () => {
   const notes = ref<Note[]>([])
   const activeNoteId = ref<string | null>(null)
   const maxZIndex = ref(10)
+  const hiddenTags = ref<Set<NoteTag>>(new Set())
 
   const sortedNotes = computed(() => {
     return [...notes.value].sort((a, b) => a.zIndex - b.zIndex)
+  })
+
+  const filteredSortedNotes = computed(() => {
+    return sortedNotes.value.filter(n => !hiddenTags.value.has(n.tag))
   })
 
   const activeNote = computed(() => {
@@ -49,6 +54,7 @@ export const useNoteStore = defineStore('notes', () => {
         strokeColor: '#000000',
         strokeWidth: 2
       },
+      tag: '',
       isActive: false,
       isMinimized: false,
       createdAt: now,
@@ -148,6 +154,28 @@ export const useNoteStore = defineStore('notes', () => {
     }
   }
 
+  function setNoteTag(noteId: string, tag: NoteTag): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (note) {
+      note.tag = tag
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
+  function toggleTagFilter(tag: NoteTag): void {
+    const newSet = new Set(hiddenTags.value)
+    if (newSet.has(tag)) {
+      newSet.delete(tag)
+    } else {
+      newSet.add(tag)
+    }
+    hiddenTags.value = newSet
+  }
+
+  function isTagHidden(tag: NoteTag): boolean {
+    return hiddenTags.value.has(tag)
+  }
+
   function toggleMinimize(noteId: string): void {
     const note = notes.value.find(n => n.id === noteId)
     if (note) {
@@ -166,7 +194,8 @@ export const useNoteStore = defineStore('notes', () => {
     try {
       const data = {
         notes: notes.value,
-        maxZIndex: maxZIndex.value
+        maxZIndex: maxZIndex.value,
+        hiddenTags: [...hiddenTags.value]
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
     } catch (e) {
@@ -181,9 +210,11 @@ export const useNoteStore = defineStore('notes', () => {
         const data = JSON.parse(stored)
         notes.value = (data.notes || []).map((n: Note) => ({
           ...n,
-          isMinimized: n.isMinimized ?? false
+          isMinimized: n.isMinimized ?? false,
+          tag: n.tag ?? ''
         }))
         maxZIndex.value = data.maxZIndex || 10
+        hiddenTags.value = new Set(data.hiddenTags || [])
         activeNoteId.value = null
         notes.value.forEach(n => n.isActive = false)
       }
@@ -195,9 +226,11 @@ export const useNoteStore = defineStore('notes', () => {
   return {
     notes,
     sortedNotes,
+    filteredSortedNotes,
     activeNoteId,
     activeNote,
     maxZIndex,
+    hiddenTags,
     createNote,
     deleteNote,
     setActiveNote,
@@ -207,6 +240,9 @@ export const useNoteStore = defineStore('notes', () => {
     updateNoteText,
     updateNoteCanvasData,
     setTool,
+    setNoteTag,
+    toggleTagFilter,
+    isTagHidden,
     bringToFront,
     sendToBack,
     toggleMinimize,

@@ -25,7 +25,7 @@ function handleDesktopClick() {
     <main class="pt-14 relative z-10 min-h-screen">
       <TransitionGroup name="note-list">
         <StickyNote
-          v-for="note in noteStore.sortedNotes"
+          v-for="note in noteStore.filteredSortedNotes"
           :key="note.id"
           :note="note"
         />

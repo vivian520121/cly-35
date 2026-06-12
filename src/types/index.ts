@@ -20,6 +20,21 @@ export interface TextSettings {
   fontSize: number
 }
 
+export type NoteTag = 'work' | 'life' | 'draft' | ''
+
+export interface NoteTagOption {
+  value: NoteTag
+  label: string
+  color: string
+  bgColor: string
+}
+
+export const NOTE_TAG_OPTIONS: NoteTagOption[] = [
+  { value: 'work', label: '工作', color: '#1d4ed8', bgColor: '#dbeafe' },
+  { value: 'life', label: '生活', color: '#16a34a', bgColor: '#dcfce7' },
+  { value: 'draft', label: '草稿', color: '#9333ea', bgColor: '#f3e8ff' }
+]
+
 export interface Note {
   id: string
   x: number
@@ -31,6 +46,7 @@ export interface Note {
   canvasData: string
   text: TextSettings
   drawing: DrawingSettings
+  tag: NoteTag
   isActive: boolean
   isMinimized: boolean
   createdAt: string
