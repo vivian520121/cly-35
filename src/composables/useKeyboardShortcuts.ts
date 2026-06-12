@@ -25,22 +25,29 @@ export function useKeyboardShortcuts() {
     const isCtrlOrCmd = e.ctrlKey || e.metaKey
 
     if (isCtrlOrCmd) {
-      switch (e.key.toLowerCase()) {
-        case 'n':
-          e.preventDefault()
-          noteStore.createNote()
-          break
-        case 's':
-          e.preventDefault()
-          noteStore.saveToStorage()
-          break
-        case 'z':
-          if (!e.shiftKey) {
-            e.preventDefault()
-            noteStore.undo()
-          }
-          break
+      const key = e.key.toLowerCase()
+      
+      if (key === 'n') {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        noteStore.createNote()
+        return
       }
+      
+      if (key === 's') {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        noteStore.saveToStorage()
+        return
+      }
+      
+      if (key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        noteStore.undo()
+        return
+      }
+      
       return
     }
 
@@ -65,11 +72,11 @@ export function useKeyboardShortcuts() {
   }
 
   onMounted(() => {
-    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, true)
   })
 
   onUnmounted(() => {
-    window.removeEventListener('keydown', handleKeyDown)
+    window.removeEventListener('keydown', handleKeyDown, true)
   })
 
   return {}

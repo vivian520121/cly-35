@@ -44,6 +44,15 @@ function handleDesktopClick() {
         </div>
       </div>
     </main>
+
+    <Transition name="toast">
+      <div
+        v-if="noteStore.saveToastVisible"
+        class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[100] px-6 py-3 bg-gray-900/90 text-white rounded-full shadow-lg backdrop-blur-sm text-sm font-medium"
+      >
+        {{ noteStore.saveToastMessage }}
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -84,5 +93,16 @@ function handleDesktopClick() {
 
 .note-list-move {
   transition: transform 0.3s ease;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 20px);
 }
 </style>

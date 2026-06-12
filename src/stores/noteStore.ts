@@ -201,6 +201,17 @@ export const useNoteStore = defineStore('notes', () => {
     maxZIndex.value = 10
   }
 
+  const saveToastVisible = ref(false)
+  const saveToastMessage = ref('')
+
+  function showSaveToast(message: string) {
+    saveToastMessage.value = message
+    saveToastVisible.value = true
+    setTimeout(() => {
+      saveToastVisible.value = false
+    }, 1500)
+  }
+
   function saveToStorage(): void {
     try {
       const data = {
@@ -209,8 +220,10 @@ export const useNoteStore = defineStore('notes', () => {
         hiddenTags: [...hiddenTags.value]
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      showSaveToast('已保存')
     } catch (e) {
       console.error('Failed to save to localStorage:', e)
+      showSaveToast('保存失败')
     }
   }
 
@@ -297,6 +310,8 @@ export const useNoteStore = defineStore('notes', () => {
     maxZIndex,
     hiddenTags,
     textEditorToggleCounter,
+    saveToastVisible,
+    saveToastMessage,
     createNote,
     deleteNote,
     setActiveNote,
