@@ -113,6 +113,15 @@ watch(
   }
 )
 
+watch(
+  () => noteStore.textEditorToggleCounter,
+  () => {
+    if (props.note.isActive) {
+      showTextEditor.value = !showTextEditor.value
+    }
+  }
+)
+
 onMounted(() => {
   setTimeout(() => {
     isAppearing.value = false

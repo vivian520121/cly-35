@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useNoteStore } from '@/stores/noteStore'
 import { useLocalStorage } from '@/composables/useLocalStorage'
+import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import AppHeader from '@/components/AppHeader.vue'
 import StickyNote from '@/components/StickyNote.vue'
 
 useLocalStorage()
+useKeyboardShortcuts()
 
 const noteStore = useNoteStore()
 

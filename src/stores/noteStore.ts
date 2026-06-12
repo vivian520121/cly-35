@@ -1,15 +1,26 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Note, NoteStyle, NoteTag, DrawingSettings, TextSettings, ToolType } from '@/types'
 import { generateId, getRandomNoteColor } from '@/utils/id'
 
 const STORAGE_KEY = 'sticky-notes-canvas-data'
+const MAX_HISTORY = 50
+
+interface HistoryState {
+  notes: Note[]
+  maxZIndex: number
+  hiddenTags: string[]
+}
 
 export const useNoteStore = defineStore('notes', () => {
   const notes = ref<Note[]>([])
   const activeNoteId = ref<string | null>(null)
   const maxZIndex = ref(10)
   const hiddenTags = ref<Set<NoteTag>>(new Set())
+  const history = ref<HistoryState[]>([])
+  const historyIndex = ref(-1)
+  const isUndoing = ref(false)
+  const textEditorToggleCounter = ref(0)
 
   const sortedNotes = computed(() => {
     return [...notes.value].sort((a, b) => a.zIndex - b.zIndex)
@@ -223,6 +234,60 @@ export const useNoteStore = defineStore('notes', () => {
     }
   }
 
+  function saveHistory(): void {
+    if (isUndoing.value) return
+    const state: HistoryState = {
+      notes: JSON.parse(JSON.stringify(notes.value)),
+      maxZIndex: maxZIndex.value,
+      hiddenTags: [...hiddenTags.value]
+    }
+    if (historyIndex.value < history.value.length - 1) {
+      history.value = history.value.slice(0, historyIndex.value + 1)
+    }
+    history.value.push(state)
+    if (history.value.length > MAX_HISTORY) {
+      history.value.shift()
+    } else {
+      historyIndex.value++
+    }
+  }
+
+  function undo(): boolean {
+    if (historyIndex.value <= 0) return false
+    isUndoing.value = true
+    try {
+      historyIndex.value--
+      const state = history.value[historyIndex.value]
+      notes.value = JSON.parse(JSON.stringify(state.notes))
+      maxZIndex.value = state.maxZIndex
+      hiddenTags.value = new Set(state.hiddenTags as NoteTag[])
+      activeNoteId.value = null
+      notes.value.forEach(n => n.isActive = false)
+      saveToStorage()
+      return true
+    } finally {
+      setTimeout(() => {
+        isUndoing.value = false
+      }, 50)
+    }
+  }
+
+  function canUndo(): boolean {
+    return historyIndex.value > 0
+  }
+
+  function toggleTextEditor(): void {
+    textEditorToggleCounter.value++
+  }
+
+  watch(
+    () => [notes.value, maxZIndex.value, hiddenTags.value],
+    () => {
+      saveHistory()
+    },
+    { deep: true }
+  )
+
   return {
     notes,
     sortedNotes,
@@ -231,6 +296,7 @@ export const useNoteStore = defineStore('notes', () => {
     activeNote,
     maxZIndex,
     hiddenTags,
+    textEditorToggleCounter,
     createNote,
     deleteNote,
     setActiveNote,
@@ -248,6 +314,10 @@ export const useNoteStore = defineStore('notes', () => {
     toggleMinimize,
     clearAllNotes,
     saveToStorage,
-    loadFromStorage
+    loadFromStorage,
+    undo,
+    canUndo,
+    saveHistory,
+    toggleTextEditor
   }
 })
