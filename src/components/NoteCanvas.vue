@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import type { Ref } from 'vue'
-import type { ToolType, TextBox, TextBoxStyle } from '@/types'
+import type { ToolType, TextBox, TextBoxStyle, ImageBox, ImageBoxStyle } from '@/types'
 import { useCanvasDrawing } from '@/composables/useCanvasDrawing'
 import { useNoteStore } from '@/stores/noteStore'
 import TextBoxComp from './TextBox.vue'
+import ImageBoxComp from './ImageBox.vue'
 
 interface Props {
   noteId: string
@@ -13,6 +14,7 @@ interface Props {
   strokeColor: string
   strokeWidth: number
   textBoxes: TextBox[]
+  imageBoxes: ImageBox[]
 }
 
 const props = defineProps<Props>()
@@ -23,6 +25,12 @@ const emit = defineEmits<{
   (e: 'updateTextBoxStyle', textBoxId: string, style: Partial<TextBoxStyle>): void
   (e: 'deleteTextBox', textBoxId: string): void
   (e: 'setActiveTextBox', textBoxId: string | null): void
+  (e: 'updateImageBox', imageBoxId: string, updates: Partial<ImageBox>): void
+  (e: 'updateImageBoxStyle', imageBoxId: string, style: Partial<ImageBoxStyle>): void
+  (e: 'deleteImageBox', imageBoxId: string): void
+  (e: 'setActiveImageBox', imageBoxId: string | null): void
+  (e: 'bringImageBoxToFront', imageBoxId: string): void
+  (e: 'sendImageBoxToBack', imageBoxId: string): void
 }>()
 
 const noteStore = useNoteStore()
@@ -94,6 +102,7 @@ function handleContainerClick() {
   if (props.tool !== 'text') {
     emit('setActiveTextBox', null)
   }
+  emit('setActiveImageBox', null)
 }
 
 function handleTextBoxActivate(textBoxId: string) {
@@ -128,6 +137,46 @@ function handleTextBoxUpdateStyle(textBoxId: string, style: Partial<TextBoxStyle
   emit('updateTextBoxStyle', textBoxId, style)
 }
 
+function handleImageBoxActivate(imageBoxId: string) {
+  emit('setActiveImageBox', imageBoxId)
+}
+
+function handleImageBoxDelete(imageBoxId: string) {
+  emit('deleteImageBox', imageBoxId)
+}
+
+function handleImageBoxUpdateX(imageBoxId: string, x: number) {
+  emit('updateImageBox', imageBoxId, { x })
+}
+
+function handleImageBoxUpdateY(imageBoxId: string, y: number) {
+  emit('updateImageBox', imageBoxId, { y })
+}
+
+function handleImageBoxUpdateWidth(imageBoxId: string, width: number) {
+  emit('updateImageBox', imageBoxId, { width })
+}
+
+function handleImageBoxUpdateHeight(imageBoxId: string, height: number) {
+  emit('updateImageBox', imageBoxId, { height })
+}
+
+function handleImageBoxUpdateStyle(imageBoxId: string, style: Partial<ImageBoxStyle>) {
+  emit('updateImageBoxStyle', imageBoxId, style)
+}
+
+function handleImageBoxBringToFront(imageBoxId: string) {
+  emit('bringImageBoxToFront', imageBoxId)
+}
+
+function handleImageBoxSendToBack(imageBoxId: string) {
+  emit('sendImageBoxToBack', imageBoxId)
+}
+
+const sortedImageBoxes = computed(() => {
+  return [...props.imageBoxes].sort((a, b) => a.zIndex - b.zIndex)
+})
+
 defineExpose({
   canvasRef,
   clear,
@@ -154,6 +203,22 @@ defineExpose({
       @touchstart.stop="handleCanvasTouchStart"
       @click.stop
     ></canvas>
+
+    <ImageBoxComp
+      v-for="img in sortedImageBoxes"
+      :key="img.id"
+      :note-id="noteId"
+      :image-box="img"
+      @update:x="handleImageBoxUpdateX(img.id, $event)"
+      @update:y="handleImageBoxUpdateY(img.id, $event)"
+      @update:width="handleImageBoxUpdateWidth(img.id, $event)"
+      @update:height="handleImageBoxUpdateHeight(img.id, $event)"
+      @update:style="handleImageBoxUpdateStyle(img.id, $event)"
+      @activate="handleImageBoxActivate(img.id)"
+      @delete="handleImageBoxDelete(img.id)"
+      @bringToFront="handleImageBoxBringToFront(img.id)"
+      @sendToBack="handleImageBoxSendToBack(img.id)"
+    />
 
     <TextBoxComp
       v-for="tb in textBoxes"

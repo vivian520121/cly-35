@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import type { Note, NoteStyle, NoteTag, DrawingSettings, TextSettings, ToolType, TextBox, TextBoxStyle } from '@/types'
+import type { Note, NoteStyle, NoteTag, DrawingSettings, TextSettings, ToolType, TextBox, TextBoxStyle, ImageBox, ImageBoxStyle } from '@/types'
 import { generateId, getRandomNoteColor } from '@/utils/id'
 
 const STORAGE_KEY = 'sticky-notes-canvas-data'
@@ -66,6 +66,7 @@ export const useNoteStore = defineStore('notes', () => {
         strokeWidth: 2
       },
       textBoxes: [],
+      imageBoxes: [],
       tag: '',
       isActive: false,
       isMinimized: false,
@@ -271,6 +272,102 @@ export const useNoteStore = defineStore('notes', () => {
     return note.textBoxes.find(tb => tb.isActive) || null
   }
 
+  function addImageBox(noteId: string, x: number, y: number, src: string, width: number, height: number): ImageBox {
+    const note = notes.value.find(n => n.id === noteId)
+    const maxImgZIndex = note ? Math.max(0, ...note.imageBoxes.map(img => img.zIndex)) : 0
+    const newImageBox: ImageBox = {
+      id: generateId(),
+      x,
+      y,
+      width,
+      height,
+      src,
+      style: {
+        opacity: 1,
+        rotation: 0,
+        borderRadius: 0
+      },
+      isActive: true,
+      zIndex: maxImgZIndex + 1
+    }
+    if (note) {
+      note.imageBoxes.forEach(img => {
+        img.isActive = false
+      })
+      note.imageBoxes.push(newImageBox)
+      note.updatedAt = new Date().toISOString()
+    }
+    return newImageBox
+  }
+
+  function updateImageBox(noteId: string, imageBoxId: string, updates: Partial<ImageBox>): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const imageBox = note.imageBoxes.find(img => img.id === imageBoxId)
+    if (imageBox) {
+      Object.assign(imageBox, updates)
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
+  function updateImageBoxStyle(noteId: string, imageBoxId: string, styleUpdates: Partial<ImageBoxStyle>): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const imageBox = note.imageBoxes.find(img => img.id === imageBoxId)
+    if (imageBox) {
+      imageBox.style = { ...imageBox.style, ...styleUpdates }
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
+  function deleteImageBox(noteId: string, imageBoxId: string): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const index = note.imageBoxes.findIndex(img => img.id === imageBoxId)
+    if (index > -1) {
+      note.imageBoxes.splice(index, 1)
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
+  function setActiveImageBox(noteId: string, imageBoxId: string | null): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    note.imageBoxes.forEach(img => {
+      img.isActive = img.id === imageBoxId
+    })
+    if (imageBoxId) {
+      bringImageBoxToFront(noteId, imageBoxId)
+    }
+  }
+
+  function bringImageBoxToFront(noteId: string, imageBoxId: string): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const imageBox = note.imageBoxes.find(img => img.id === imageBoxId)
+    if (imageBox) {
+      const maxZIndex = Math.max(...note.imageBoxes.map(img => img.zIndex))
+      imageBox.zIndex = maxZIndex + 1
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
+  function sendImageBoxToBack(noteId: string, imageBoxId: string): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const imageBox = note.imageBoxes.find(img => img.id === imageBoxId)
+    if (imageBox) {
+      const minZIndex = Math.min(...note.imageBoxes.map(img => img.zIndex))
+      imageBox.zIndex = minZIndex - 1
+      note.imageBoxes.forEach(img => {
+        if (img.id !== imageBoxId) {
+          img.zIndex++
+        }
+      })
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
   function clearAllNotes(): void {
     notes.value = []
     activeNoteId.value = null
@@ -312,7 +409,8 @@ export const useNoteStore = defineStore('notes', () => {
           ...n,
           isMinimized: n.isMinimized ?? false,
           tag: n.tag ?? '',
-          textBoxes: n.textBoxes ?? []
+          textBoxes: n.textBoxes ?? [],
+          imageBoxes: n.imageBoxes ?? []
         }))
         maxZIndex.value = data.maxZIndex || 10
         hiddenTags.value = new Set(data.hiddenTags || [])
@@ -410,6 +508,13 @@ export const useNoteStore = defineStore('notes', () => {
     deleteTextBox,
     setActiveTextBox,
     getActiveTextBox,
+    addImageBox,
+    updateImageBox,
+    updateImageBoxStyle,
+    deleteImageBox,
+    setActiveImageBox,
+    bringImageBoxToFront,
+    sendImageBoxToBack,
     clearAllNotes,
     saveToStorage,
     loadFromStorage,

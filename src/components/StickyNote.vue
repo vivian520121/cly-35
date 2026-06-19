@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import type { Ref } from 'vue'
 import { useNoteStore } from '@/stores/noteStore'
-import type { Note, NoteStyle, TextBox, TextBoxStyle } from '@/types'
+import type { Note, NoteStyle, TextBox, TextBoxStyle, ImageBox, ImageBoxStyle } from '@/types'
 import { exportNoteAsPNG } from '@/utils/export'
 import NoteHeader from './NoteHeader.vue'
 import NoteCanvas from './NoteCanvas.vue'
@@ -29,6 +29,7 @@ const noteStyle = computed(() => props.note.style)
 const drawing = computed(() => props.note.drawing)
 const text = computed(() => props.note.text)
 const textBoxes = computed(() => props.note.textBoxes)
+const imageBoxes = computed(() => props.note.imageBoxes)
 
 const borderClass = computed(() => {
   const style = props.note.style
@@ -136,6 +137,72 @@ function handleSetActiveTextBox(textBoxId: string | null) {
   }
 }
 
+async function handleUploadImage(file: File) {
+  if (!file.type.startsWith('image/')) {
+    alert('请选择图片文件')
+    return
+  }
+
+  try {
+    const dataUrl = await readFileAsDataURL(file)
+    const img = new Image()
+    img.src = dataUrl
+    img.onload = () => {
+      const maxWidth = 200
+      const maxHeight = 200
+      let width = img.width
+      let height = img.height
+
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height)
+        width = width * ratio
+        height = height * ratio
+      }
+
+      const x = 30 + Math.random() * 50
+      const y = 50 + Math.random() * 50
+
+      noteStore.addImageBox(props.note.id, x, y, dataUrl, width, height)
+    }
+  } catch (e) {
+    console.error('图片上传失败:', e)
+    alert('图片上传失败，请重试')
+  }
+}
+
+function readFileAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+function handleUpdateImageBox(imageBoxId: string, updates: Partial<ImageBox>) {
+  noteStore.updateImageBox(props.note.id, imageBoxId, updates)
+}
+
+function handleUpdateImageBoxStyle(imageBoxId: string, styleUpdates: Partial<ImageBoxStyle>) {
+  noteStore.updateImageBoxStyle(props.note.id, imageBoxId, styleUpdates)
+}
+
+function handleDeleteImageBox(imageBoxId: string) {
+  noteStore.deleteImageBox(props.note.id, imageBoxId)
+}
+
+function handleSetActiveImageBox(imageBoxId: string | null) {
+  noteStore.setActiveImageBox(props.note.id, imageBoxId)
+}
+
+function handleBringImageBoxToFront(imageBoxId: string) {
+  noteStore.bringImageBoxToFront(props.note.id, imageBoxId)
+}
+
+function handleSendImageBoxToBack(imageBoxId: string) {
+  noteStore.sendImageBoxToBack(props.note.id, imageBoxId)
+}
+
 watch(
   () => props.note.isActive,
   (active) => {
@@ -227,12 +294,19 @@ onMounted(() => {
           :stroke-color="drawing.strokeColor"
           :stroke-width="drawing.strokeWidth"
           :text-boxes="textBoxes"
+          :image-boxes="imageBoxes"
           @canvas-change="handleCanvasChange"
           @add-text-box="handleAddTextBox"
           @update-text-box="handleUpdateTextBox"
           @update-text-box-style="handleUpdateTextBoxStyle"
           @delete-text-box="handleDeleteTextBox"
           @set-active-text-box="handleSetActiveTextBox"
+          @update-image-box="handleUpdateImageBox"
+          @update-image-box-style="handleUpdateImageBoxStyle"
+          @delete-image-box="handleDeleteImageBox"
+          @set-active-image-box="handleSetActiveImageBox"
+          @bring-image-box-to-front="handleBringImageBoxToFront"
+          @send-image-box-to-back="handleSendImageBoxToBack"
         />
       </div>
 
@@ -258,6 +332,7 @@ onMounted(() => {
           @clear="handleClear"
           @toggle-text="showTextEditor = !showTextEditor"
           @toggle-style="showStylePanel = !showStylePanel"
+          @upload-image="handleUploadImage"
         />
       </div>
     </div>

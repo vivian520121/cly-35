@@ -38,6 +38,24 @@ export interface TextBox {
   isEditing: boolean
 }
 
+export interface ImageBoxStyle {
+  opacity: number
+  rotation: number
+  borderRadius: number
+}
+
+export interface ImageBox {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  src: string
+  style: ImageBoxStyle
+  isActive: boolean
+  zIndex: number
+}
+
 export type NoteTag = 'work' | 'life' | 'draft' | ''
 
 export interface NoteTagOption {
@@ -65,6 +83,7 @@ export interface Note {
   text: TextSettings
   drawing: DrawingSettings
   textBoxes: TextBox[]
+  imageBoxes: ImageBox[]
   tag: NoteTag
   isActive: boolean
   isMinimized: boolean

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Pencil, Eraser, Minus, Square, Circle, Type, Palette, RotateCcw } from 'lucide-vue-next'
+import { Pencil, Eraser, Minus, Square, Circle, Type, Palette, RotateCcw, ImagePlus } from 'lucide-vue-next'
 import type { ToolType } from '@/types'
 import { STROKE_COLORS } from '@/types'
 
@@ -18,7 +18,25 @@ const emit = defineEmits<{
   (e: 'clear'): void
   (e: 'toggleText'): void
   (e: 'toggleStyle'): void
+  (e: 'uploadImage', file: File): void
 }>()
+
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
+function handleUploadClick() {
+  fileInputRef.value?.click()
+}
+
+function handleFileChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (file) {
+    emit('uploadImage', file)
+  }
+  if (target) {
+    target.value = ''
+  }
+}
 
 const showColorPicker = ref(false)
 const colorPickerRef = ref<HTMLDivElement | null>(null)
@@ -126,6 +144,24 @@ function selectWidth(width: number) {
           ></div>
         </button>
       </div>
+
+      <div class="w-px h-5 bg-black/10 mx-1"></div>
+
+      <button
+        @click="handleUploadClick"
+        class="p-1.5 rounded text-gray-600 hover:bg-black/8 hover:text-gray-900 transition-colors"
+        title="上传图片"
+      >
+        <ImagePlus class="w-4 h-4" />
+      </button>
+
+      <input
+        ref="fileInputRef"
+        type="file"
+        accept="image/*"
+        class="hidden"
+        @change="handleFileChange"
+      />
 
       <div class="w-px h-5 bg-black/10 mx-1"></div>
 
