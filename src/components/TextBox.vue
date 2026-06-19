@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { Trash2, Bold } from 'lucide-vue-next'
+import { Trash2, Bold, ChevronDown } from 'lucide-vue-next'
 import type { TextBox, TextBoxStyle } from '@/types'
 import { STROKE_COLORS } from '@/types'
 
@@ -23,7 +23,9 @@ const emit = defineEmits<{
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const showColorPicker = ref(false)
+const showFontSizePicker = ref(false)
 const colorPickerRef = ref<HTMLDivElement | null>(null)
+const fontSizePickerRef = ref<HTMLDivElement | null>(null)
 
 const isDragging = ref(false)
 const dragStartX = ref(0)
@@ -140,6 +142,7 @@ function selectColor(color: string) {
 
 function selectFontSize(size: number) {
   emit('update:style', { fontSize: size })
+  showFontSizePicker.value = false
 }
 
 function toggleBold() {
@@ -156,6 +159,26 @@ function handleClickOutside(e: MouseEvent) {
   if (colorPickerRef.value && !colorPickerRef.value.contains(e.target as Node)) {
     showColorPicker.value = false
   }
+  if (fontSizePickerRef.value && !fontSizePickerRef.value.contains(e.target as Node)) {
+    showFontSizePicker.value = false
+  }
+}
+
+function toggleColorPicker(e: MouseEvent) {
+  e.stopPropagation()
+  showFontSizePicker.value = false
+  showColorPicker.value = !showColorPicker.value
+}
+
+function toggleFontSizePicker(e: MouseEvent) {
+  e.stopPropagation()
+  showColorPicker.value = false
+  showFontSizePicker.value = !showFontSizePicker.value
+}
+
+function handleToolbarButtonMouseDown(e: MouseEvent) {
+  e.stopPropagation()
+  e.preventDefault()
 }
 
 onMounted(() => {
@@ -190,7 +213,7 @@ const textStyle = computed(() => ({
       top: `${textBox.y}px`,
       width: `${textBox.width}px`,
       minHeight: `${textBox.height}px`,
-      zIndex: 50
+      zIndex: textBox.isActive ? 100 : 50
     }"
     @mousedown="handleTextBoxClick"
     @dblclick="handleDoubleClick"
@@ -198,62 +221,86 @@ const textStyle = computed(() => ({
   >
     <div
       v-if="textBox.isActive"
-      class="text-box-header absolute -top-7 left-0 right-0 h-6 flex items-center justify-between bg-blue-500/90 rounded-t-md px-1.5 cursor-move"
+      class="text-box-header absolute -top-8 left-0 right-0 h-7 flex items-center justify-between bg-blue-500/95 rounded-t-md px-1.5 cursor-move shadow-md"
       @mousedown="handleMouseDownHeader"
     >
       <div class="flex items-center gap-1">
         <div class="relative" ref="colorPickerRef">
           <button
-            @click.stop="showColorPicker = !showColorPicker"
-            class="w-5 h-5 rounded-full border-2 border-white/80 hover:scale-110 transition-transform"
+            @mousedown="handleToolbarButtonMouseDown"
+            @click="toggleColorPicker"
+            class="w-5 h-5 rounded-full border-2 border-white/80 hover:scale-110 transition-transform flex-shrink-0"
             :style="{ backgroundColor: textBox.style.color }"
             title="文字颜色"
           ></button>
           <div
             v-if="showColorPicker"
-            class="absolute bottom-full left-0 mb-2 p-2 bg-white rounded-lg shadow-xl border border-gray-200 grid grid-cols-4 gap-1 z-50"
+            class="absolute bottom-full left-0 mb-2 p-2 bg-white rounded-lg shadow-2xl border border-gray-200 grid grid-cols-4 gap-1.5 z-[1000] min-w-[130px]"
             @click.stop
+            @mousedown.stop
           >
             <button
               v-for="c in STROKE_COLORS"
               :key="c"
+              @mousedown.stop
               @click="selectColor(c)"
               class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110"
-              :class="textBox.style.color === c ? 'border-gray-800 scale-110' : 'border-white'"
+              :class="textBox.style.color === c ? 'border-gray-800 scale-110 shadow-md' : 'border-gray-200'"
               :style="{ backgroundColor: c }"
             ></button>
           </div>
         </div>
 
-        <div class="w-px h-4 bg-white/40 mx-0.5"></div>
+        <div class="w-px h-4 bg-white/40 mx-0.5 flex-shrink-0"></div>
 
         <button
+          @mousedown="handleToolbarButtonMouseDown"
           @click.stop="toggleBold"
-          class="p-0.5 rounded transition-colors"
+          class="p-0.5 rounded transition-colors flex-shrink-0"
           :class="textBox.style.bold ? 'bg-white/30 text-white' : 'text-white/80 hover:bg-white/20 hover:text-white'"
           title="加粗"
         >
           <Bold class="w-4 h-4" />
         </button>
 
-        <div class="w-px h-4 bg-white/40 mx-0.5"></div>
+        <div class="w-px h-4 bg-white/40 mx-0.5 flex-shrink-0"></div>
 
-        <select
-          :value="textBox.style.fontSize"
-          @change="(e) => selectFontSize(Number((e.target as HTMLSelectElement).value))"
-          class="h-5 text-xs bg-white/20 text-white rounded px-1 border-0 outline-none cursor-pointer"
-          title="字体大小"
-          @click.stop
-        >
-          <option v-for="size in fontSizes" :key="size" :value="size" class="text-gray-800">
-            {{ size }}px
-          </option>
-        </select>
+        <div class="relative" ref="fontSizePickerRef">
+          <button
+            @mousedown="handleToolbarButtonMouseDown"
+            @click="toggleFontSizePicker"
+            class="h-5 px-1.5 text-xs bg-white/20 text-white rounded flex items-center gap-0.5 hover:bg-white/30 transition-colors flex-shrink-0"
+            title="字体大小"
+          >
+            <span class="font-medium">{{ textBox.style.fontSize }}</span>
+            <ChevronDown class="w-3 h-3" />
+          </button>
+          <div
+            v-if="showFontSizePicker"
+            class="absolute bottom-full left-0 mb-2 p-1.5 bg-white rounded-lg shadow-2xl border border-gray-200 grid grid-cols-4 gap-1 z-[1000] min-w-[140px]"
+            @click.stop
+            @mousedown.stop
+          >
+            <button
+              v-for="size in fontSizes"
+              :key="size"
+              @mousedown.stop
+              @click="selectFontSize(size)"
+              class="px-1.5 py-1 text-xs rounded transition-colors"
+              :class="textBox.style.fontSize === size 
+                ? 'bg-blue-500 text-white font-medium shadow-sm' 
+                : 'text-gray-700 hover:bg-gray-100'"
+            >
+              {{ size }}
+            </button>
+          </div>
+        </div>
       </div>
 
       <button
+        @mousedown="handleToolbarButtonMouseDown"
         @click.stop="emit('delete')"
-        class="p-0.5 rounded text-white/80 hover:bg-red-500/80 hover:text-white transition-colors"
+        class="p-0.5 rounded text-white/80 hover:bg-red-500/80 hover:text-white transition-colors flex-shrink-0"
         title="删除"
       >
         <Trash2 class="w-4 h-4" />
@@ -276,7 +323,7 @@ const textStyle = computed(() => ({
 
     <div
       v-if="textBox.isActive"
-      class="absolute -right-1.5 -bottom-1.5 w-4 h-4 bg-blue-500 rounded-full cursor-nwse-resize border-2 border-white shadow-md hover:scale-125 transition-transform"
+      class="absolute -right-1.5 -bottom-1.5 w-4 h-4 bg-blue-500 rounded-full cursor-nwse-resize border-2 border-white shadow-md hover:scale-125 transition-transform z-10"
       @mousedown="handleResizeMouseDown"
     ></div>
   </div>
