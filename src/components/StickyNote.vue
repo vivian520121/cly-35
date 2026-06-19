@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import type { Ref } from 'vue'
 import { useNoteStore } from '@/stores/noteStore'
-import type { Note, NoteStyle } from '@/types'
+import type { Note, NoteStyle, TextBox, TextBoxStyle } from '@/types'
 import { exportNoteAsPNG } from '@/utils/export'
 import NoteHeader from './NoteHeader.vue'
 import NoteCanvas from './NoteCanvas.vue'
@@ -28,6 +28,7 @@ const isDisappearing = ref(false)
 const noteStyle = computed(() => props.note.style)
 const drawing = computed(() => props.note.drawing)
 const text = computed(() => props.note.text)
+const textBoxes = computed(() => props.note.textBoxes)
 
 const borderClass = computed(() => {
   const style = props.note.style
@@ -100,6 +101,39 @@ function handleNoteClick() {
 function handleRestore() {
   noteStore.toggleMinimize(props.note.id)
   noteStore.setActiveNote(props.note.id)
+}
+
+function handleAddTextBox(x: number, y: number) {
+  noteStore.addTextBox(props.note.id, x, y)
+}
+
+function handleUpdateTextBox(textBoxId: string, updates: Partial<TextBox>) {
+  noteStore.updateTextBox(props.note.id, textBoxId, updates)
+}
+
+function handleUpdateTextBoxStyle(textBoxId: string, styleUpdates: Partial<TextBoxStyle>) {
+  noteStore.updateTextBoxStyle(props.note.id, textBoxId, styleUpdates)
+}
+
+function handleDeleteTextBox(textBoxId: string) {
+  noteStore.deleteTextBox(props.note.id, textBoxId)
+}
+
+function handleSetActiveTextBox(textBoxId: string | null) {
+  if (textBoxId) {
+    noteStore.setActiveTextBox(props.note.id, textBoxId)
+    const textBox = props.note.textBoxes.find(tb => tb.id === textBoxId)
+    if (textBox && !textBox.isEditing) {
+      noteStore.updateTextBox(props.note.id, textBoxId, { isEditing: true })
+    }
+  } else {
+    props.note.textBoxes.forEach(tb => {
+      if (tb.isEditing) {
+        noteStore.updateTextBox(props.note.id, tb.id, { isEditing: false })
+      }
+    })
+    noteStore.setActiveTextBox(props.note.id, null)
+  }
 }
 
 watch(
@@ -192,7 +226,13 @@ onMounted(() => {
           :tool="drawing.currentTool"
           :stroke-color="drawing.strokeColor"
           :stroke-width="drawing.strokeWidth"
+          :text-boxes="textBoxes"
           @canvas-change="handleCanvasChange"
+          @add-text-box="handleAddTextBox"
+          @update-text-box="handleUpdateTextBox"
+          @update-text-box-style="handleUpdateTextBoxStyle"
+          @delete-text-box="handleDeleteTextBox"
+          @set-active-text-box="handleSetActiveTextBox"
         />
       </div>
 

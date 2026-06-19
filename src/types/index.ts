@@ -20,6 +20,24 @@ export interface TextSettings {
   fontSize: number
 }
 
+export interface TextBoxStyle {
+  color: string
+  fontSize: number
+  bold: boolean
+}
+
+export interface TextBox {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  content: string
+  style: TextBoxStyle
+  isActive: boolean
+  isEditing: boolean
+}
+
 export type NoteTag = 'work' | 'life' | 'draft' | ''
 
 export interface NoteTagOption {
@@ -46,6 +64,7 @@ export interface Note {
   canvasData: string
   text: TextSettings
   drawing: DrawingSettings
+  textBoxes: TextBox[]
   tag: NoteTag
   isActive: boolean
   isMinimized: boolean

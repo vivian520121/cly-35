@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import type { Ref } from 'vue'
-import type { ToolType } from '@/types'
+import type { ToolType, TextBox, TextBoxStyle } from '@/types'
 import { useCanvasDrawing } from '@/composables/useCanvasDrawing'
 import { useNoteStore } from '@/stores/noteStore'
+import TextBoxComp from './TextBox.vue'
 
 interface Props {
   noteId: string
@@ -11,15 +12,22 @@ interface Props {
   tool: ToolType
   strokeColor: string
   strokeWidth: number
+  textBoxes: TextBox[]
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<{
   (e: 'canvasChange', dataUrl: string): void
+  (e: 'addTextBox', x: number, y: number): void
+  (e: 'updateTextBox', textBoxId: string, updates: Partial<TextBox>): void
+  (e: 'updateTextBoxStyle', textBoxId: string, style: Partial<TextBoxStyle>): void
+  (e: 'deleteTextBox', textBoxId: string): void
+  (e: 'setActiveTextBox', textBoxId: string | null): void
 }>()
 
 const noteStore = useNoteStore()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
+const containerRef = ref<HTMLDivElement | null>(null)
 
 const toolRef = computed(() => props.tool)
 const strokeColorRef = computed(() => props.strokeColor)
@@ -39,10 +47,85 @@ const { clear, initCanvas } = useCanvasDrawing({
   onCanvasChange: handleCanvasChange
 })
 
-function handleCanvasClick() {
+function getRelativePoint(e: MouseEvent | TouchEvent): { x: number; y: number } | null {
+  if (!containerRef.value) return null
+  const rect = containerRef.value.getBoundingClientRect()
+  let clientX: number, clientY: number
+  if ('touches' in e) {
+    clientX = e.touches[0].clientX
+    clientY = e.touches[0].clientY
+  } else {
+    clientX = e.clientX
+    clientY = e.clientY
+  }
+  return {
+    x: clientX - rect.left,
+    y: clientY - rect.top
+  }
+}
+
+function handleCanvasMouseDown(e: MouseEvent) {
   if (noteStore.activeNoteId !== props.noteId) {
     noteStore.setActiveNote(props.noteId)
   }
+  if (props.tool === 'text') {
+    e.preventDefault()
+    const point = getRelativePoint(e)
+    if (point) {
+      emit('addTextBox', point.x - 90, point.y - 20)
+    }
+  }
+}
+
+function handleCanvasTouchStart(e: TouchEvent) {
+  if (noteStore.activeNoteId !== props.noteId) {
+    noteStore.setActiveNote(props.noteId)
+  }
+  if (props.tool === 'text') {
+    e.preventDefault()
+    const point = getRelativePoint(e)
+    if (point) {
+      emit('addTextBox', point.x - 90, point.y - 20)
+    }
+  }
+}
+
+function handleContainerClick() {
+  if (props.tool !== 'text') {
+    emit('setActiveTextBox', null)
+  }
+}
+
+function handleTextBoxActivate(textBoxId: string) {
+  emit('setActiveTextBox', textBoxId)
+}
+
+function handleTextBoxDelete(textBoxId: string) {
+  emit('deleteTextBox', textBoxId)
+}
+
+function handleTextBoxUpdateX(textBoxId: string, x: number) {
+  emit('updateTextBox', textBoxId, { x })
+}
+
+function handleTextBoxUpdateY(textBoxId: string, y: number) {
+  emit('updateTextBox', textBoxId, { y })
+}
+
+function handleTextBoxUpdateWidth(textBoxId: string, width: number) {
+  emit('updateTextBox', textBoxId, { width })
+}
+
+function handleTextBoxUpdateHeight(textBoxId: string, height: number) {
+  emit('updateTextBox', textBoxId, { height })
+}
+
+function handleTextBoxUpdateContent(textBoxId: string, content: string) {
+  emit('updateTextBox', textBoxId, { content })
+}
+
+function handleTextBoxUpdateStyle(textBoxId: string, style: Partial<TextBoxStyle>) {
+  emit('updateTextBoxStyle', textBoxId, style)
 }
 
 defineExpose({
@@ -53,18 +136,40 @@ defineExpose({
 </script>
 
 <template>
-  <canvas
-    ref="canvasRef"
-    class="absolute inset-0 w-full h-full cursor-crosshair"
-    :class="{
-      'cursor-pen': tool === 'pen',
-      'cursor-erase': tool === 'eraser',
-      'cursor-crosshair': tool === 'line' || tool === 'rect' || tool === 'circle'
-    }"
-    @mousedown.stop="handleCanvasClick"
-    @touchstart.stop="handleCanvasClick"
-    @click.stop
-  ></canvas>
+  <div
+    ref="containerRef"
+    class="absolute inset-0 w-full h-full"
+    @click="handleContainerClick"
+  >
+    <canvas
+      ref="canvasRef"
+      class="absolute inset-0 w-full h-full cursor-crosshair"
+      :class="{
+        'cursor-pen': tool === 'pen',
+        'cursor-erase': tool === 'eraser',
+        'cursor-crosshair': tool === 'line' || tool === 'rect' || tool === 'circle',
+        'cursor-text': tool === 'text'
+      }"
+      @mousedown.stop="handleCanvasMouseDown"
+      @touchstart.stop="handleCanvasTouchStart"
+      @click.stop
+    ></canvas>
+
+    <TextBoxComp
+      v-for="tb in textBoxes"
+      :key="tb.id"
+      :note-id="noteId"
+      :text-box="tb"
+      @update:x="handleTextBoxUpdateX(tb.id, $event)"
+      @update:y="handleTextBoxUpdateY(tb.id, $event)"
+      @update:width="handleTextBoxUpdateWidth(tb.id, $event)"
+      @update:height="handleTextBoxUpdateHeight(tb.id, $event)"
+      @update:content="handleTextBoxUpdateContent(tb.id, $event)"
+      @update:style="handleTextBoxUpdateStyle(tb.id, $event)"
+      @activate="handleTextBoxActivate(tb.id)"
+      @delete="handleTextBoxDelete(tb.id)"
+    />
+  </div>
 </template>
 
 <style scoped>
@@ -73,5 +178,8 @@ defineExpose({
 }
 .cursor-erase {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2'%3E%3Cpath d='M20 20H7L3 16l13-13 4 4z'/%3E%3Cpath d='M18 18l-3-3'/%3E%3C/svg%3E") 12 12, crosshair;
+}
+.cursor-text {
+  cursor: text;
 }
 </style>

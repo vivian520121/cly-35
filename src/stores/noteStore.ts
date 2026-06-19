@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import type { Note, NoteStyle, NoteTag, DrawingSettings, TextSettings, ToolType } from '@/types'
+import type { Note, NoteStyle, NoteTag, DrawingSettings, TextSettings, ToolType, TextBox, TextBoxStyle } from '@/types'
 import { generateId, getRandomNoteColor } from '@/utils/id'
 
 const STORAGE_KEY = 'sticky-notes-canvas-data'
@@ -65,6 +65,7 @@ export const useNoteStore = defineStore('notes', () => {
         strokeColor: '#000000',
         strokeWidth: 2
       },
+      textBoxes: [],
       tag: '',
       isActive: false,
       isMinimized: false,
@@ -195,6 +196,81 @@ export const useNoteStore = defineStore('notes', () => {
     }
   }
 
+  function addTextBox(noteId: string, x: number, y: number): TextBox {
+    const note = notes.value.find(n => n.id === noteId)
+    const newTextBox: TextBox = {
+      id: generateId(),
+      x,
+      y,
+      width: 180,
+      height: 40,
+      content: '',
+      style: {
+        color: '#333333',
+        fontSize: 16,
+        bold: false
+      },
+      isActive: true,
+      isEditing: true
+    }
+    if (note) {
+      note.textBoxes.forEach(tb => {
+        tb.isActive = false
+        tb.isEditing = false
+      })
+      note.textBoxes.push(newTextBox)
+      note.updatedAt = new Date().toISOString()
+    }
+    return newTextBox
+  }
+
+  function updateTextBox(noteId: string, textBoxId: string, updates: Partial<TextBox>): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const textBox = note.textBoxes.find(tb => tb.id === textBoxId)
+    if (textBox) {
+      Object.assign(textBox, updates)
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
+  function updateTextBoxStyle(noteId: string, textBoxId: string, styleUpdates: Partial<TextBoxStyle>): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const textBox = note.textBoxes.find(tb => tb.id === textBoxId)
+    if (textBox) {
+      textBox.style = { ...textBox.style, ...styleUpdates }
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
+  function deleteTextBox(noteId: string, textBoxId: string): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const index = note.textBoxes.findIndex(tb => tb.id === textBoxId)
+    if (index > -1) {
+      note.textBoxes.splice(index, 1)
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
+  function setActiveTextBox(noteId: string, textBoxId: string | null): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    note.textBoxes.forEach(tb => {
+      tb.isActive = tb.id === textBoxId
+      if (tb.id !== textBoxId) {
+        tb.isEditing = false
+      }
+    })
+  }
+
+  function getActiveTextBox(noteId: string): TextBox | null {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return null
+    return note.textBoxes.find(tb => tb.isActive) || null
+  }
+
   function clearAllNotes(): void {
     notes.value = []
     activeNoteId.value = null
@@ -235,7 +311,8 @@ export const useNoteStore = defineStore('notes', () => {
         notes.value = (data.notes || []).map((n: Note) => ({
           ...n,
           isMinimized: n.isMinimized ?? false,
-          tag: n.tag ?? ''
+          tag: n.tag ?? '',
+          textBoxes: n.textBoxes ?? []
         }))
         maxZIndex.value = data.maxZIndex || 10
         hiddenTags.value = new Set(data.hiddenTags || [])
@@ -327,6 +404,12 @@ export const useNoteStore = defineStore('notes', () => {
     bringToFront,
     sendToBack,
     toggleMinimize,
+    addTextBox,
+    updateTextBox,
+    updateTextBoxStyle,
+    deleteTextBox,
+    setActiveTextBox,
+    getActiveTextBox,
     clearAllNotes,
     saveToStorage,
     loadFromStorage,

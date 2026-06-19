@@ -43,7 +43,8 @@ const tools = [
   { type: 'eraser' as ToolType, icon: Eraser, label: '橡皮' },
   { type: 'line' as ToolType, icon: Minus, label: '线条' },
   { type: 'rect' as ToolType, icon: Square, label: '矩形' },
-  { type: 'circle' as ToolType, icon: Circle, label: '圆形' }
+  { type: 'circle' as ToolType, icon: Circle, label: '圆形' },
+  { type: 'text' as ToolType, icon: Type, label: '文字' }
 ]
 
 function selectTool(tool: ToolType) {
