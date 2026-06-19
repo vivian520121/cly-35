@@ -80,8 +80,8 @@ function selectWidth(width: number) {
 </script>
 
 <template>
-  <div class="h-12 px-3 flex items-center justify-between border-t border-black/10 bg-black/3">
-    <div class="flex items-center gap-0.5">
+  <div class="h-12 px-3 flex items-center justify-between border-t border-black/10 bg-black/3 gap-2">
+    <div class="flex items-center gap-0.5 min-w-0 overflow-x-auto">
       <button
         v-for="tool in tools"
         :key="tool.type"
@@ -148,6 +148,16 @@ function selectWidth(width: number) {
       <div class="w-px h-5 bg-black/10 mx-1"></div>
 
       <button
+        @click="emit('clear')"
+        class="p-1.5 rounded text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
+        title="清除画布"
+      >
+        <RotateCcw class="w-4 h-4" />
+      </button>
+    </div>
+
+    <div class="flex items-center gap-0.5 flex-shrink-0">
+      <button
         @click="handleUploadClick"
         class="p-1.5 rounded text-gray-600 hover:bg-black/8 hover:text-gray-900 transition-colors"
         title="上传图片"
@@ -166,16 +176,6 @@ function selectWidth(width: number) {
       <div class="w-px h-5 bg-black/10 mx-1"></div>
 
       <button
-        @click="emit('clear')"
-        class="p-1.5 rounded text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
-        title="清除画布"
-      >
-        <RotateCcw class="w-4 h-4" />
-      </button>
-    </div>
-
-    <div class="flex items-center gap-0.5">
-      <button
         @click="emit('toggleText')"
         class="p-1.5 rounded text-gray-600 hover:bg-black/8 hover:text-gray-900 transition-colors"
         title="文本编辑"
@@ -192,3 +192,27 @@ function selectWidth(width: number) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.overflow-x-auto::-webkit-scrollbar {
+  height: 2px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 1px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+</style>
