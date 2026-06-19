@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import type { Ref } from 'vue'
-import type { ToolType, TextBox, TextBoxStyle, ImageBox, ImageBoxStyle } from '@/types'
+import type { ToolType, TextBox, TextBoxStyle, ImageBox, ImageBoxStyle, TodoBox, TodoBoxStyle, TodoItem } from '@/types'
 import { useCanvasDrawing } from '@/composables/useCanvasDrawing'
 import { useNoteStore } from '@/stores/noteStore'
 import TextBoxComp from './TextBox.vue'
 import ImageBoxComp from './ImageBox.vue'
+import TodoBoxComp from './TodoBox.vue'
 
 interface Props {
   noteId: string
@@ -15,6 +16,7 @@ interface Props {
   strokeWidth: number
   textBoxes: TextBox[]
   imageBoxes: ImageBox[]
+  todoBoxes: TodoBox[]
 }
 
 const props = defineProps<Props>()
@@ -31,6 +33,15 @@ const emit = defineEmits<{
   (e: 'setActiveImageBox', imageBoxId: string | null): void
   (e: 'bringImageBoxToFront', imageBoxId: string): void
   (e: 'sendImageBoxToBack', imageBoxId: string): void
+  (e: 'addTodoBox', x: number, y: number): void
+  (e: 'updateTodoBox', todoBoxId: string, updates: Partial<TodoBox>): void
+  (e: 'updateTodoBoxStyle', todoBoxId: string, style: Partial<TodoBoxStyle>): void
+  (e: 'deleteTodoBox', todoBoxId: string): void
+  (e: 'setActiveTodoBox', todoBoxId: string | null): void
+  (e: 'addTodoItem', todoBoxId: string): void
+  (e: 'updateTodoItem', todoBoxId: string, itemId: string, updates: Partial<TodoItem>): void
+  (e: 'deleteTodoItem', todoBoxId: string, itemId: string): void
+  (e: 'toggleTodoItem', todoBoxId: string, itemId: string): void
 }>()
 
 const noteStore = useNoteStore()
@@ -82,6 +93,12 @@ function handleCanvasMouseDown(e: MouseEvent) {
     if (point) {
       emit('addTextBox', point.x - 90, point.y - 20)
     }
+  } else if (props.tool === 'todo') {
+    e.preventDefault()
+    const point = getRelativePoint(e)
+    if (point) {
+      emit('addTodoBox', point.x - 110, point.y - 60)
+    }
   }
 }
 
@@ -95,12 +112,21 @@ function handleCanvasTouchStart(e: TouchEvent) {
     if (point) {
       emit('addTextBox', point.x - 90, point.y - 20)
     }
+  } else if (props.tool === 'todo') {
+    e.preventDefault()
+    const point = getRelativePoint(e)
+    if (point) {
+      emit('addTodoBox', point.x - 110, point.y - 60)
+    }
   }
 }
 
 function handleContainerClick() {
   if (props.tool !== 'text') {
     emit('setActiveTextBox', null)
+  }
+  if (props.tool !== 'todo') {
+    emit('setActiveTodoBox', null)
   }
   emit('setActiveImageBox', null)
 }
@@ -173,6 +199,50 @@ function handleImageBoxSendToBack(imageBoxId: string) {
   emit('sendImageBoxToBack', imageBoxId)
 }
 
+function handleTodoBoxActivate(todoBoxId: string) {
+  emit('setActiveTodoBox', todoBoxId)
+}
+
+function handleTodoBoxDelete(todoBoxId: string) {
+  emit('deleteTodoBox', todoBoxId)
+}
+
+function handleTodoBoxUpdateX(todoBoxId: string, x: number) {
+  emit('updateTodoBox', todoBoxId, { x })
+}
+
+function handleTodoBoxUpdateY(todoBoxId: string, y: number) {
+  emit('updateTodoBox', todoBoxId, { y })
+}
+
+function handleTodoBoxUpdateWidth(todoBoxId: string, width: number) {
+  emit('updateTodoBox', todoBoxId, { width })
+}
+
+function handleTodoBoxUpdateHeight(todoBoxId: string, height: number) {
+  emit('updateTodoBox', todoBoxId, { height })
+}
+
+function handleTodoBoxUpdateStyle(todoBoxId: string, style: Partial<TodoBoxStyle>) {
+  emit('updateTodoBoxStyle', todoBoxId, style)
+}
+
+function handleTodoBoxAddItem(todoBoxId: string) {
+  emit('addTodoItem', todoBoxId)
+}
+
+function handleTodoBoxUpdateItem(todoBoxId: string, itemId: string, updates: Partial<TodoItem>) {
+  emit('updateTodoItem', todoBoxId, itemId, updates)
+}
+
+function handleTodoBoxDeleteItem(todoBoxId: string, itemId: string) {
+  emit('deleteTodoItem', todoBoxId, itemId)
+}
+
+function handleTodoBoxToggleItem(todoBoxId: string, itemId: string) {
+  emit('toggleTodoItem', todoBoxId, itemId)
+}
+
 const sortedImageBoxes = computed(() => {
   return [...props.imageBoxes].sort((a, b) => a.zIndex - b.zIndex)
 })
@@ -197,7 +267,8 @@ defineExpose({
         'cursor-pen': tool === 'pen',
         'cursor-erase': tool === 'eraser',
         'cursor-crosshair': tool === 'line' || tool === 'rect' || tool === 'circle',
-        'cursor-text': tool === 'text'
+        'cursor-text': tool === 'text',
+        'cursor-copy': tool === 'todo'
       }"
       @mousedown.stop="handleCanvasMouseDown"
       @touchstart.stop="handleCanvasTouchStart"
@@ -233,6 +304,24 @@ defineExpose({
       @update:style="handleTextBoxUpdateStyle(tb.id, $event)"
       @activate="handleTextBoxActivate(tb.id)"
       @delete="handleTextBoxDelete(tb.id)"
+    />
+
+    <TodoBoxComp
+      v-for="tb in todoBoxes"
+      :key="tb.id"
+      :note-id="noteId"
+      :todo-box="tb"
+      @update:x="handleTodoBoxUpdateX(tb.id, $event)"
+      @update:y="handleTodoBoxUpdateY(tb.id, $event)"
+      @update:width="handleTodoBoxUpdateWidth(tb.id, $event)"
+      @update:height="handleTodoBoxUpdateHeight(tb.id, $event)"
+      @update:style="handleTodoBoxUpdateStyle(tb.id, $event)"
+      @activate="handleTodoBoxActivate(tb.id)"
+      @delete="handleTodoBoxDelete(tb.id)"
+      @addItem="handleTodoBoxAddItem(tb.id)"
+      @updateItem="(itemId: string, updates: any) => handleTodoBoxUpdateItem(tb.id, itemId, updates)"
+      @deleteItem="(itemId: string) => handleTodoBoxDeleteItem(tb.id, itemId)"
+      @toggleItem="(itemId: string) => handleTodoBoxToggleItem(tb.id, itemId)"
     />
   </div>
 </template>

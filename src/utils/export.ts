@@ -77,6 +77,69 @@ export async function exportNoteAsPNG(
     ctx.fillText(line, padding, y)
   }
 
+  const headerHeight = 36
+  for (const todoBox of note.todoBoxes || []) {
+    const boxX = todoBox.x
+    const boxY = headerHeight + todoBox.y
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'
+    ctx.fillRect(boxX, boxY, todoBox.width, todoBox.height)
+
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)'
+    ctx.lineWidth = 1
+    ctx.strokeRect(boxX, boxY, todoBox.width, todoBox.height)
+
+    const padding = 8
+    const checkboxSize = 14
+    const itemGap = 4
+    const lineHeight = todoBox.style.fontSize + 4
+    let itemY = boxY + padding
+
+    ctx.font = `${todoBox.style.bold ? 'bold ' : ''}${todoBox.style.fontSize}px -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif`
+    ctx.textBaseline = 'top'
+
+    for (const item of todoBox.items) {
+      const checkboxX = boxX + padding
+      const textX = checkboxX + checkboxSize + 8
+
+      if (item.completed) {
+        ctx.fillStyle = '#10B981'
+        ctx.fillRect(checkboxX, itemY, checkboxSize, checkboxSize)
+
+        ctx.strokeStyle = '#FFFFFF'
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.moveTo(checkboxX + 3, itemY + 7)
+        ctx.lineTo(checkboxX + 6, itemY + 10)
+        ctx.lineTo(checkboxX + 11, itemY + 4)
+        ctx.stroke()
+      } else {
+        ctx.strokeStyle = '#D1D5DB'
+        ctx.lineWidth = 2
+        ctx.strokeRect(checkboxX, itemY, checkboxSize, checkboxSize)
+      }
+
+      if (item.completed) {
+        ctx.fillStyle = '#9CA3AF'
+      } else {
+        ctx.fillStyle = todoBox.style.color
+      }
+      ctx.fillText(item.text || '', textX, itemY - 1)
+
+      if (item.completed) {
+        const textWidth = ctx.measureText(item.text || '').width
+        ctx.strokeStyle = '#9CA3AF'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(textX, itemY + checkboxSize / 2)
+        ctx.lineTo(textX + textWidth, itemY + checkboxSize / 2)
+        ctx.stroke()
+      }
+
+      itemY += lineHeight + itemGap
+    }
+  }
+
   const dataUrl = canvas.toDataURL('image/png')
   const link = document.createElement('a')
   link.download = `便签_${note.id.slice(0, 8)}.png`

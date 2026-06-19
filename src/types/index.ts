@@ -6,7 +6,7 @@ export interface NoteStyle {
   borderWidth: number
 }
 
-export type ToolType = 'pen' | 'eraser' | 'line' | 'rect' | 'circle' | 'text'
+export type ToolType = 'pen' | 'eraser' | 'line' | 'rect' | 'circle' | 'text' | 'todo'
 
 export interface DrawingSettings {
   currentTool: ToolType
@@ -56,6 +56,30 @@ export interface ImageBox {
   zIndex: number
 }
 
+export interface TodoItem {
+  id: string
+  text: string
+  completed: boolean
+}
+
+export interface TodoBoxStyle {
+  color: string
+  fontSize: number
+  bold: boolean
+}
+
+export interface TodoBox {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  items: TodoItem[]
+  style: TodoBoxStyle
+  isActive: boolean
+  isEditing: boolean
+}
+
 export type NoteTag = 'work' | 'life' | 'draft' | ''
 
 export interface NoteTagOption {
@@ -84,6 +108,7 @@ export interface Note {
   drawing: DrawingSettings
   textBoxes: TextBox[]
   imageBoxes: ImageBox[]
+  todoBoxes: TodoBox[]
   tag: NoteTag
   isActive: boolean
   isMinimized: boolean

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import type { Note, NoteStyle, NoteTag, DrawingSettings, TextSettings, ToolType, TextBox, TextBoxStyle, ImageBox, ImageBoxStyle } from '@/types'
+import type { Note, NoteStyle, NoteTag, DrawingSettings, TextSettings, ToolType, TextBox, TextBoxStyle, ImageBox, ImageBoxStyle, TodoBox, TodoBoxStyle, TodoItem } from '@/types'
 import { generateId, getRandomNoteColor } from '@/utils/id'
 
 const STORAGE_KEY = 'sticky-notes-canvas-data'
@@ -67,6 +67,7 @@ export const useNoteStore = defineStore('notes', () => {
       },
       textBoxes: [],
       imageBoxes: [],
+      todoBoxes: [],
       tag: '',
       isActive: false,
       isMinimized: false,
@@ -368,6 +369,141 @@ export const useNoteStore = defineStore('notes', () => {
     }
   }
 
+  function addTodoBox(noteId: string, x: number, y: number): TodoBox {
+    const note = notes.value.find(n => n.id === noteId)
+    const newTodoBox: TodoBox = {
+      id: generateId(),
+      x,
+      y,
+      width: 220,
+      height: 120,
+      items: [
+        { id: generateId(), text: '待办事项 1', completed: false },
+        { id: generateId(), text: '待办事项 2', completed: false }
+      ],
+      style: {
+        color: '#333333',
+        fontSize: 14,
+        bold: false
+      },
+      isActive: true,
+      isEditing: false
+    }
+    if (note) {
+      note.textBoxes.forEach(tb => {
+        tb.isActive = false
+        tb.isEditing = false
+      })
+      note.imageBoxes.forEach(img => {
+        img.isActive = false
+      })
+      note.todoBoxes.forEach(tb => {
+        tb.isActive = false
+        tb.isEditing = false
+      })
+      note.todoBoxes.push(newTodoBox)
+      note.updatedAt = new Date().toISOString()
+    }
+    return newTodoBox
+  }
+
+  function updateTodoBox(noteId: string, todoBoxId: string, updates: Partial<TodoBox>): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const todoBox = note.todoBoxes.find(tb => tb.id === todoBoxId)
+    if (todoBox) {
+      Object.assign(todoBox, updates)
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
+  function updateTodoBoxStyle(noteId: string, todoBoxId: string, styleUpdates: Partial<TodoBoxStyle>): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const todoBox = note.todoBoxes.find(tb => tb.id === todoBoxId)
+    if (todoBox) {
+      todoBox.style = { ...todoBox.style, ...styleUpdates }
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
+  function deleteTodoBox(noteId: string, todoBoxId: string): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const index = note.todoBoxes.findIndex(tb => tb.id === todoBoxId)
+    if (index > -1) {
+      note.todoBoxes.splice(index, 1)
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
+  function setActiveTodoBox(noteId: string, todoBoxId: string | null): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    note.todoBoxes.forEach(tb => {
+      tb.isActive = tb.id === todoBoxId
+      if (tb.id !== todoBoxId) {
+        tb.isEditing = false
+      }
+    })
+  }
+
+  function getActiveTodoBox(noteId: string): TodoBox | null {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return null
+    return note.todoBoxes.find(tb => tb.isActive) || null
+  }
+
+  function addTodoItem(noteId: string, todoBoxId: string): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const todoBox = note.todoBoxes.find(tb => tb.id === todoBoxId)
+    if (todoBox) {
+      todoBox.items.push({
+        id: generateId(),
+        text: '',
+        completed: false
+      })
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
+  function updateTodoItem(noteId: string, todoBoxId: string, itemId: string, updates: Partial<TodoItem>): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const todoBox = note.todoBoxes.find(tb => tb.id === todoBoxId)
+    if (!todoBox) return
+    const item = todoBox.items.find(i => i.id === itemId)
+    if (item) {
+      Object.assign(item, updates)
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
+  function deleteTodoItem(noteId: string, todoBoxId: string, itemId: string): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const todoBox = note.todoBoxes.find(tb => tb.id === todoBoxId)
+    if (!todoBox) return
+    const index = todoBox.items.findIndex(i => i.id === itemId)
+    if (index > -1) {
+      todoBox.items.splice(index, 1)
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
+  function toggleTodoItem(noteId: string, todoBoxId: string, itemId: string): void {
+    const note = notes.value.find(n => n.id === noteId)
+    if (!note) return
+    const todoBox = note.todoBoxes.find(tb => tb.id === todoBoxId)
+    if (!todoBox) return
+    const item = todoBox.items.find(i => i.id === itemId)
+    if (item) {
+      item.completed = !item.completed
+      note.updatedAt = new Date().toISOString()
+    }
+  }
+
   function clearAllNotes(): void {
     notes.value = []
     activeNoteId.value = null
@@ -410,7 +546,8 @@ export const useNoteStore = defineStore('notes', () => {
           isMinimized: n.isMinimized ?? false,
           tag: n.tag ?? '',
           textBoxes: n.textBoxes ?? [],
-          imageBoxes: n.imageBoxes ?? []
+          imageBoxes: n.imageBoxes ?? [],
+          todoBoxes: n.todoBoxes ?? []
         }))
         maxZIndex.value = data.maxZIndex || 10
         hiddenTags.value = new Set(data.hiddenTags || [])
@@ -515,6 +652,16 @@ export const useNoteStore = defineStore('notes', () => {
     setActiveImageBox,
     bringImageBoxToFront,
     sendImageBoxToBack,
+    addTodoBox,
+    updateTodoBox,
+    updateTodoBoxStyle,
+    deleteTodoBox,
+    setActiveTodoBox,
+    getActiveTodoBox,
+    addTodoItem,
+    updateTodoItem,
+    deleteTodoItem,
+    toggleTodoItem,
     clearAllNotes,
     saveToStorage,
     loadFromStorage,

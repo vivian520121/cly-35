@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import type { Ref } from 'vue'
 import { useNoteStore } from '@/stores/noteStore'
-import type { Note, NoteStyle, TextBox, TextBoxStyle, ImageBox, ImageBoxStyle } from '@/types'
+import type { Note, NoteStyle, TextBox, TextBoxStyle, ImageBox, ImageBoxStyle, TodoBox, TodoBoxStyle, TodoItem } from '@/types'
 import { exportNoteAsPNG } from '@/utils/export'
 import NoteHeader from './NoteHeader.vue'
 import NoteCanvas from './NoteCanvas.vue'
@@ -30,6 +30,7 @@ const drawing = computed(() => props.note.drawing)
 const text = computed(() => props.note.text)
 const textBoxes = computed(() => props.note.textBoxes)
 const imageBoxes = computed(() => props.note.imageBoxes)
+const todoBoxes = computed(() => props.note.todoBoxes)
 
 const borderClass = computed(() => {
   const style = props.note.style
@@ -203,6 +204,46 @@ function handleSendImageBoxToBack(imageBoxId: string) {
   noteStore.sendImageBoxToBack(props.note.id, imageBoxId)
 }
 
+function handleAddTodoBox(x: number, y: number) {
+  noteStore.addTodoBox(props.note.id, x, y)
+}
+
+function handleUpdateTodoBox(todoBoxId: string, updates: Partial<TodoBox>) {
+  noteStore.updateTodoBox(props.note.id, todoBoxId, updates)
+}
+
+function handleUpdateTodoBoxStyle(todoBoxId: string, styleUpdates: Partial<TodoBoxStyle>) {
+  noteStore.updateTodoBoxStyle(props.note.id, todoBoxId, styleUpdates)
+}
+
+function handleDeleteTodoBox(todoBoxId: string) {
+  noteStore.deleteTodoBox(props.note.id, todoBoxId)
+}
+
+function handleSetActiveTodoBox(todoBoxId: string | null) {
+  if (todoBoxId) {
+    noteStore.setActiveTodoBox(props.note.id, todoBoxId)
+  } else {
+    noteStore.setActiveTodoBox(props.note.id, null)
+  }
+}
+
+function handleAddTodoItem(todoBoxId: string) {
+  noteStore.addTodoItem(props.note.id, todoBoxId)
+}
+
+function handleUpdateTodoItem(todoBoxId: string, itemId: string, updates: Partial<TodoItem>) {
+  noteStore.updateTodoItem(props.note.id, todoBoxId, itemId, updates)
+}
+
+function handleDeleteTodoItem(todoBoxId: string, itemId: string) {
+  noteStore.deleteTodoItem(props.note.id, todoBoxId, itemId)
+}
+
+function handleToggleTodoItem(todoBoxId: string, itemId: string) {
+  noteStore.toggleTodoItem(props.note.id, todoBoxId, itemId)
+}
+
 watch(
   () => props.note.isActive,
   (active) => {
@@ -295,6 +336,7 @@ onMounted(() => {
           :stroke-width="drawing.strokeWidth"
           :text-boxes="textBoxes"
           :image-boxes="imageBoxes"
+          :todo-boxes="todoBoxes"
           @canvas-change="handleCanvasChange"
           @add-text-box="handleAddTextBox"
           @update-text-box="handleUpdateTextBox"
@@ -307,6 +349,15 @@ onMounted(() => {
           @set-active-image-box="handleSetActiveImageBox"
           @bring-image-box-to-front="handleBringImageBoxToFront"
           @send-image-box-to-back="handleSendImageBoxToBack"
+          @add-todo-box="handleAddTodoBox"
+          @update-todo-box="handleUpdateTodoBox"
+          @update-todo-box-style="handleUpdateTodoBoxStyle"
+          @delete-todo-box="handleDeleteTodoBox"
+          @set-active-todo-box="handleSetActiveTodoBox"
+          @add-todo-item="handleAddTodoItem"
+          @update-todo-item="handleUpdateTodoItem"
+          @delete-todo-item="handleDeleteTodoItem"
+          @toggle-todo-item="handleToggleTodoItem"
         />
       </div>
 

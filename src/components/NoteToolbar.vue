@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Pencil, Eraser, Minus, Square, Circle, Type, Palette, RotateCcw, ImagePlus } from 'lucide-vue-next'
+import { Pencil, Eraser, Minus, Square, Circle, Type, Palette, RotateCcw, ImagePlus, CheckSquare } from 'lucide-vue-next'
 import type { ToolType } from '@/types'
 import { STROKE_COLORS } from '@/types'
 
@@ -62,7 +62,8 @@ const tools = [
   { type: 'line' as ToolType, icon: Minus, label: '线条' },
   { type: 'rect' as ToolType, icon: Square, label: '矩形' },
   { type: 'circle' as ToolType, icon: Circle, label: '圆形' },
-  { type: 'text' as ToolType, icon: Type, label: '文字' }
+  { type: 'text' as ToolType, icon: Type, label: '文字' },
+  { type: 'todo' as ToolType, icon: CheckSquare, label: '待办清单' }
 ]
 
 function selectTool(tool: ToolType) {
