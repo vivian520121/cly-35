@@ -44,6 +44,7 @@ const borderClass = computed(() => {
 })
 
 const isMinimized = computed(() => props.note.isMinimized)
+const isSelected = computed(() => noteStore.isNoteSelected(props.note.id))
 
 function handleCanvasChange(dataUrl: string) {
   noteStore.updateNoteCanvasData(props.note.id, dataUrl)
@@ -94,9 +95,21 @@ async function handleExport() {
   }
 }
 
-function handleNoteClick() {
-  if (!props.note.isActive) {
-    noteStore.setActiveNote(props.note.id)
+function handleNoteClick(e: MouseEvent | TouchEvent) {
+  const isMultiSelect = 'ctrlKey' in e ? (e.ctrlKey || e.metaKey) : false
+  const isShiftSelect = 'shiftKey' in e ? e.shiftKey : false
+
+  if (isMultiSelect) {
+    noteStore.toggleNoteSelection(props.note.id)
+  } else if (isShiftSelect) {
+    noteStore.selectNote(props.note.id)
+  } else {
+    if (!noteStore.isNoteSelected(props.note.id)) {
+      noteStore.clearSelection()
+    }
+    if (!props.note.isActive) {
+      noteStore.setActiveNote(props.note.id)
+    }
   }
 }
 
@@ -277,6 +290,7 @@ onMounted(() => {
     class="sticky-note-mini absolute flex items-center justify-center cursor-pointer select-none"
     :class="[
       note.isActive ? 'shadow-note-active ring-2 ring-blue-400/30' : 'shadow-note',
+      isSelected ? 'ring-2 ring-blue-500' : '',
       { 'animate-note-appear': isAppearing }
     ]"
     :style="{
@@ -291,6 +305,14 @@ onMounted(() => {
     @touchstart.stop="handleRestore"
     @click.stop
   >
+    <div
+      v-if="isSelected"
+      class="absolute -top-2 -left-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center shadow-md z-10"
+    >
+      <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+      </svg>
+    </div>
     <span class="text-lg font-bold text-gray-500 pointer-events-none select-none">📝</span>
   </div>
 
@@ -299,6 +321,7 @@ onMounted(() => {
     class="sticky-note absolute flex flex-col rounded-lg shadow-note overflow-hidden animate-note-appear"
     :class="[
       note.isActive ? 'shadow-note-active ring-2 ring-blue-400/30' : '',
+      isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : '',
       borderClass,
       noteHeaderRef?.isDragging ? 'is-dragging' : '',
       noteHeaderRef?.isSnapped ? 'is-snapped' : '',
@@ -319,6 +342,14 @@ onMounted(() => {
     @touchstart="handleNoteClick"
     @click.stop
   >
+    <div
+      v-if="isSelected"
+      class="absolute -top-2.5 -left-2.5 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg z-50"
+    >
+      <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+      </svg>
+    </div>
     <NoteHeader
       ref="noteHeaderRef"
       :note-id="note.id"

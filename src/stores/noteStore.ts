@@ -15,6 +15,7 @@ interface HistoryState {
 export const useNoteStore = defineStore('notes', () => {
   const notes = ref<Note[]>([])
   const activeNoteId = ref<string | null>(null)
+  const selectedNoteIds = ref<Set<string>>(new Set())
   const maxZIndex = ref(10)
   const hiddenTags = ref<Set<NoteTag>>(new Set())
   const history = ref<HistoryState[]>([])
@@ -33,6 +34,14 @@ export const useNoteStore = defineStore('notes', () => {
   const activeNote = computed(() => {
     if (!activeNoteId.value) return null
     return notes.value.find(n => n.id === activeNoteId.value) || null
+  })
+
+  const selectedNotes = computed(() => {
+    return notes.value.filter(n => selectedNoteIds.value.has(n.id))
+  })
+
+  const hasSelection = computed(() => {
+    return selectedNoteIds.value.size > 0
   })
 
   function createNote(x?: number, y?: number): Note {
@@ -84,6 +93,9 @@ export const useNoteStore = defineStore('notes', () => {
     const index = notes.value.findIndex(n => n.id === noteId)
     if (index > -1) {
       notes.value.splice(index, 1)
+      if (selectedNoteIds.value.has(noteId)) {
+        deselectNote(noteId)
+      }
       if (activeNoteId.value === noteId) {
         activeNoteId.value = notes.value.length > 0 ? notes.value[notes.value.length - 1].id : null
       }
@@ -98,6 +110,89 @@ export const useNoteStore = defineStore('notes', () => {
     if (noteId) {
       bringToFront(noteId)
     }
+  }
+
+  function toggleNoteSelection(noteId: string): void {
+    const newSet = new Set(selectedNoteIds.value)
+    if (newSet.has(noteId)) {
+      newSet.delete(noteId)
+    } else {
+      newSet.add(noteId)
+    }
+    selectedNoteIds.value = newSet
+  }
+
+  function selectNote(noteId: string): void {
+    const newSet = new Set(selectedNoteIds.value)
+    newSet.add(noteId)
+    selectedNoteIds.value = newSet
+  }
+
+  function deselectNote(noteId: string): void {
+    const newSet = new Set(selectedNoteIds.value)
+    newSet.delete(noteId)
+    selectedNoteIds.value = newSet
+  }
+
+  function clearSelection(): void {
+    selectedNoteIds.value = new Set()
+  }
+
+  function selectAllNotes(): void {
+    const visibleNotes = notes.value.filter(n => !hiddenTags.value.has(n.tag))
+    selectedNoteIds.value = new Set(visibleNotes.map(n => n.id))
+  }
+
+  function isNoteSelected(noteId: string): boolean {
+    return selectedNoteIds.value.has(noteId)
+  }
+
+  const ARRANGE_GAP = 40
+
+  function arrangeNotesHorizontally(noteIds?: string[]): void {
+    const ids = noteIds ?? [...selectedNoteIds.value]
+    if (ids.length === 0) return
+
+    const targetNotes = ids
+      .map(id => notes.value.find(n => n.id === id))
+      .filter((n): n is Note => n !== undefined)
+
+    if (targetNotes.length === 0) return
+
+    const minY = Math.min(...targetNotes.map(n => n.y))
+    let currentX = Math.min(...targetNotes.map(n => n.x))
+
+    targetNotes
+      .sort((a, b) => a.x - b.x)
+      .forEach(note => {
+        note.x = currentX
+        note.y = minY
+        note.updatedAt = new Date().toISOString()
+        currentX += note.width + ARRANGE_GAP
+      })
+  }
+
+  function arrangeNotesVertically(noteIds?: string[]): void {
+    const ids = noteIds ?? [...selectedNoteIds.value]
+    if (ids.length === 0) return
+
+    const targetNotes = ids
+      .map(id => notes.value.find(n => n.id === id))
+      .filter((n): n is Note => n !== undefined)
+
+    if (targetNotes.length === 0) return
+
+    const minX = Math.min(...targetNotes.map(n => n.x))
+    let currentY = Math.min(...targetNotes.map(n => n.y))
+
+    targetNotes
+      .sort((a, b) => a.y - b.y)
+      .forEach(note => {
+        note.x = minX
+        note.y = currentY
+        note.updatedAt = new Date().toISOString()
+        currentY += note.height + ARRANGE_GAP
+      })
   }
 
   function updateNotePosition(noteId: string, x: number, y: number): void {
@@ -507,6 +602,7 @@ export const useNoteStore = defineStore('notes', () => {
   function clearAllNotes(): void {
     notes.value = []
     activeNoteId.value = null
+    selectedNoteIds.value = new Set()
     maxZIndex.value = 10
   }
 
@@ -619,6 +715,9 @@ export const useNoteStore = defineStore('notes', () => {
     filteredSortedNotes,
     activeNoteId,
     activeNote,
+    selectedNoteIds,
+    selectedNotes,
+    hasSelection,
     maxZIndex,
     hiddenTags,
     textEditorToggleCounter,
@@ -627,6 +726,14 @@ export const useNoteStore = defineStore('notes', () => {
     createNote,
     deleteNote,
     setActiveNote,
+    toggleNoteSelection,
+    selectNote,
+    deselectNote,
+    clearSelection,
+    selectAllNotes,
+    isNoteSelected,
+    arrangeNotesHorizontally,
+    arrangeNotesVertically,
     updateNotePosition,
     updateNoteStyle,
     updateNoteDrawing,

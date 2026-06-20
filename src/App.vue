@@ -12,6 +12,7 @@ const noteStore = useNoteStore()
 
 function handleDesktopClick() {
   noteStore.setActiveNote(null)
+  noteStore.clearSelection()
 }
 </script>
 

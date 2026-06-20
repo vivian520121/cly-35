@@ -21,6 +21,26 @@ export function useKeyboardShortcuts() {
     }
   }
 
+  function handleArrangeHorizontally() {
+    const targetIds = noteStore.hasSelection
+      ? [...noteStore.selectedNoteIds]
+      : noteStore.filteredSortedNotes.map(n => n.id)
+    if (targetIds.length >= 2) {
+      noteStore.arrangeNotesHorizontally(targetIds)
+      noteStore.saveToStorage()
+    }
+  }
+
+  function handleArrangeVertically() {
+    const targetIds = noteStore.hasSelection
+      ? [...noteStore.selectedNoteIds]
+      : noteStore.filteredSortedNotes.map(n => n.id)
+    if (targetIds.length >= 2) {
+      noteStore.arrangeNotesVertically(targetIds)
+      noteStore.saveToStorage()
+    }
+  }
+
   function handleKeyDown(e: KeyboardEvent) {
     const isCtrlOrCmd = e.ctrlKey || e.metaKey
 
@@ -48,6 +68,17 @@ export function useKeyboardShortcuts() {
         return
       }
       
+      if (key === 'a') {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        if (noteStore.hasSelection) {
+          noteStore.clearSelection()
+        } else {
+          noteStore.selectAllNotes()
+        }
+        return
+      }
+      
       return
     }
 
@@ -67,6 +98,19 @@ export function useKeyboardShortcuts() {
       case 't':
         e.preventDefault()
         noteStore.toggleTextEditor()
+        break
+      case 'h':
+        e.preventDefault()
+        handleArrangeHorizontally()
+        break
+      case 'v':
+        e.preventDefault()
+        handleArrangeVertically()
+        break
+      case 'escape':
+        e.preventDefault()
+        noteStore.clearSelection()
+        noteStore.setActiveNote(null)
         break
     }
   }

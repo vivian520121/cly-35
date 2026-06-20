@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus, Trash2, HelpCircle, StickyNote, Eye, EyeOff } from 'lucide-vue-next'
+import { Plus, Trash2, HelpCircle, StickyNote, Eye, EyeOff, Rows3, Columns3, CheckSquare, Square } from 'lucide-vue-next'
 import { useNoteStore } from '@/stores/noteStore'
 import { NOTE_TAG_OPTIONS } from '@/types'
 
@@ -17,6 +17,38 @@ function handleClearAll() {
   }
 }
 
+function handleSelectAll() {
+  if (noteStore.hasSelection) {
+    noteStore.clearSelection()
+  } else {
+    noteStore.selectAllNotes()
+  }
+}
+
+function handleArrangeHorizontally() {
+  const targetIds = noteStore.hasSelection
+    ? [...noteStore.selectedNoteIds]
+    : noteStore.filteredSortedNotes.map(n => n.id)
+  if (targetIds.length < 2) {
+    alert('请至少选择 2 个便签进行排版')
+    return
+  }
+  noteStore.arrangeNotesHorizontally(targetIds)
+  noteStore.saveToStorage()
+}
+
+function handleArrangeVertically() {
+  const targetIds = noteStore.hasSelection
+    ? [...noteStore.selectedNoteIds]
+    : noteStore.filteredSortedNotes.map(n => n.id)
+  if (targetIds.length < 2) {
+    alert('请至少选择 2 个便签进行排版')
+    return
+  }
+  noteStore.arrangeNotesVertically(targetIds)
+  noteStore.saveToStorage()
+}
+
 function handleHelp() {
   alert(
     '桌面涂鸦便签使用说明：\n\n' +
@@ -24,13 +56,18 @@ function handleHelp() {
     '• Ctrl+N：新建便签\n' +
     '• Ctrl+S：保存到本地\n' +
     '• Ctrl+Z：撤销操作\n' +
+    '• Ctrl+A：全选/取消全选便签\n' +
     '• P：切换画笔工具\n' +
     '• E：切换橡皮擦工具\n' +
-    '• T：打开/关闭文本编辑器\n\n' +
+    '• T：打开/关闭文本编辑器\n' +
+    '• H：横向均匀排布\n' +
+    '• V：纵向均匀排布\n\n' +
     '【基础操作】\n' +
     '• 点击「新建便签」创建新便签\n' +
     '• 拖拽便签顶部标题栏可移动位置\n' +
     '• 点击便签可选中并置顶\n' +
+    '• 按住 Ctrl/Cmd 点击可多选/取消多选\n' +
+    '• 按住 Shift 点击可追加选择\n' +
     '• 使用便签底部工具栏切换绘图工具\n' +
     '• 支持画笔、橡皮、线条、矩形、圆形工具\n' +
     '• 点击 T 图标可展开文本编辑器\n' +
@@ -38,7 +75,12 @@ function handleHelp() {
     '• 在便签标题栏点击标签图标可设置分组标签\n' +
     '• 在顶部标签栏点击标签可隐藏/显示对应分组的便签\n' +
     '• 数据自动保存到本地，刷新不丢失\n' +
-    '• 点击导出按钮可将便签保存为 PNG 图片'
+    '• 点击导出按钮可将便签保存为 PNG 图片\n\n' +
+    '【自动排版】\n' +
+    '• 选中多个便签后，点击顶部「横向排列」或「纵向排列」按钮\n' +
+    '• 未选中便签时，将对所有可见便签进行排版\n' +
+    '• 横向排列：将选中便签沿水平方向均匀分布\n' +
+    '• 纵向排列：将选中便签沿垂直方向均匀分布'
   )
 }
 </script>
@@ -70,6 +112,37 @@ function handleHelp() {
             <EyeOff v-if="noteStore.isTagHidden(option.value)" class="w-3 h-3" />
             <Eye v-else class="w-3 h-3" />
             {{ option.label }}
+          </button>
+        </div>
+
+        <div class="w-px h-6 bg-gray-200 mx-2" v-if="noteStore.notes.length > 0"></div>
+
+        <div v-if="noteStore.notes.length > 0" class="flex items-center gap-1 bg-gray-50 rounded-full px-1.5 py-1">
+          <button
+            @click="handleSelectAll"
+            class="p-1.5 rounded-full hover:bg-white hover:shadow-sm transition-all duration-200"
+            :class="noteStore.hasSelection ? 'text-blue-500' : 'text-gray-500'"
+            :title="noteStore.hasSelection ? '取消全选' : '全选便签'"
+          >
+            <CheckSquare v-if="noteStore.hasSelection" class="w-4 h-4" />
+            <Square v-else class="w-4 h-4" />
+          </button>
+
+          <div class="w-px h-4 bg-gray-200 mx-0.5"></div>
+
+          <button
+            @click="handleArrangeHorizontally"
+            class="p-1.5 rounded-full hover:bg-white hover:shadow-sm text-gray-500 hover:text-blue-500 transition-all duration-200"
+            title="横向均匀排列"
+          >
+            <Rows3 class="w-4 h-4" />
+          </button>
+          <button
+            @click="handleArrangeVertically"
+            class="p-1.5 rounded-full hover:bg-white hover:shadow-sm text-gray-500 hover:text-blue-500 transition-all duration-200"
+            title="纵向均匀排列"
+          >
+            <Columns3 class="w-4 h-4" />
           </button>
         </div>
 
